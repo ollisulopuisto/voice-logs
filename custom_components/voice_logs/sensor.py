@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import Entity
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DATA_STORES, DOMAIN, UPDATED_EVENT
@@ -21,9 +21,10 @@ async def async_setup_entry(
     async_add_entities([LatestConversationSensor(hass, entry, store)])
 
 
-class LatestConversationSensor(Entity):
+class LatestConversationSensor(SensorEntity):
     """Expose the last full answer as attributes and a short sensor state."""
 
+    _attr_should_poll = False
     _attr_has_entity_name = False
     _attr_name = "Voice Logs Latest"
     _attr_icon = "mdi:message-text-clock-outline"
