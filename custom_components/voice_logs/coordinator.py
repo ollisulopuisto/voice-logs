@@ -36,6 +36,7 @@ class AssistHistoryCoordinator:
             return
         self._started = True
         entry.async_on_unload(self.hass.bus.async_listen("call_service", self._on_service_call))
+        entry.async_on_unload(self.hass.bus.async_listen("automation_triggered", self._on_automation_triggered))
         entry.async_on_unload(
             async_track_time_interval(
                 self.hass, self._async_interval_refresh, POLL_INTERVAL
@@ -49,6 +50,10 @@ class AssistHistoryCoordinator:
             )
         )
         await self.async_refresh()
+
+    @callback
+    def _on_automation_triggered(self, event: Event) -> None:
+        self._service_capture.link_automation(event, self.hass, active_pipeline_runs(self.hass))
 
     @callback
     def _on_service_call(self, event: Event) -> None:

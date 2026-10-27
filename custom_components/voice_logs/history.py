@@ -65,6 +65,30 @@ class ServiceActionCapture:
         self._actions: dict[str, list[dict[str, Any]]] = {}
         self._contexts: dict[str, str] = {}
 
+    def link_automation(self, event: Any, hass: Any, runs: Sequence[Any]) -> None:
+        """HA sentence triggers omit parent_id; recover the original input context."""
+        component = hass.data.get("automation")
+        get_entity = getattr(component, "get_entity", None)
+        if get_entity is None:
+            return
+        entity = get_entity(_mapping(getattr(event, "data", None)).get("entity_id"))
+        context_id = _field(getattr(event, "context", None), "id")
+        if not context_id:
+            return
+        candidates = set()
+        for script_run in getattr(getattr(entity, "action_script", None), "_runs", []):
+            if _field(getattr(script_run, "_context", None), "id") != context_id:
+                continue
+            variables = getattr(script_run, "_variables", {})
+            trigger = _mapping(variables.get("trigger"))
+            if trigger.get("platform") != "conversation":
+                continue
+            original = _mapping(_mapping(trigger.get("user_input")).get("context")).get("id")
+            if original:
+                candidates.update(str(run.id) for run in runs if _field(getattr(run, "context", None), "id") == original)
+        if len(candidates) == 1:
+            self._contexts[context_id] = candidates.pop()
+
     def record(self, event: Any, runs: Sequence[Any]) -> None:
         data = _mapping(getattr(event, "data", None))
         domain, service = data.get("domain"), data.get("service")

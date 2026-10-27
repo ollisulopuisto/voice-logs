@@ -133,6 +133,16 @@ def main() -> int:
     capture.record(service("ambiguous", "assist-context"), ambiguous)
     capture.enrich([next_turn], [])
     check(not next_turn["actions"], "ambiguous simultaneous contexts are not guessed")
+    detached = SimpleNamespace(context=SimpleNamespace(id="detached", parent_id=None), data={"entity_id": "automation.shopping"})
+    script_run = SimpleNamespace(_context=SimpleNamespace(id="detached"), _variables={"trigger": {
+        "platform": "conversation", "user_input": {"context": {"id": "assist-context"}},
+    }})
+    automation = SimpleNamespace(action_script=SimpleNamespace(_runs=[script_run]))
+    hass = SimpleNamespace(data={"automation": SimpleNamespace(get_entity=lambda _id: automation)})
+    capture.link_automation(detached, hass, runs)
+    capture.record(service("detached", None), runs)
+    capture.enrich([next_turn], [])
+    check(next_turn["actions"][0]["name"] == "script.lisaa_ostoslistaan", "sentence automations are linked through original input context when HA drops the parent")
 
     typed = history.flatten_run(
         "run-2",

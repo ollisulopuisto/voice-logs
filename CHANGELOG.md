@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Link native sentence-triggered automations through the original ConversationInput context. HA starts these automations without a parent context, so context ancestry alone missed their service calls.
+
 ## 0.3.0
 
 - Replace the default debug section with **Toiminta**: recorded operations, targets, selected parameters, and honest outcome labels.
