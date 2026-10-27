@@ -32,7 +32,7 @@ title: Puheavustajan keskustelut
 page_size: 20
 ```
 
-Add this card to the existing **Puhevastaukset** dashboard tab to keep it alongside saved recipe and search answers. The query and response text is selectable for copy and paste.
+Add this card to any dashboard view. The query and response text is selectable for copy and paste. The card controls are currently in Finnish.
 
 The card starts with visible conversations, newest first. Search covers the complete archive, including hidden conversations only when **Näytä piilotetut** is enabled. Use **Piilota** to take a turn out of the default view and **Palauta** to bring it back. Hiding never deletes a turn. The **Toiminta** section shows the recorded operation, its targets or selected parameters, and the available outcome. It covers AI tool calls, native intent targets, and service calls connected to the active Assist context. A service dispatch is labelled **Palvelukutsu tehty**, not claimed as a confirmed success. Unfinished or historical calls without results are labelled explicitly.
 
@@ -81,4 +81,4 @@ python3 tests/test_pipeline_reader.py
 python3 -m compileall -q custom_components/voice_logs
 ```
 
-Before publishing this local project to GitHub for HACS, replace the placeholder repository URL in `custom_components/voice_logs/manifest.json` and set `codeowners` to the GitHub username that will maintain it. Then push the repository and add its GitHub URL in HACS as a custom integration repository.
+Report problems through the [issue tracker](https://github.com/ollisulopuisto/voice-logs/issues).

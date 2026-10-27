@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2
+
+- Add HACS and Hassfest validation, repository metadata, and a local integration icon.
+- Clarify configuration and dashboard setup for new installations.
+
 ## 0.3.1
 
 - Link native sentence-triggered automations through the original ConversationInput context. HA starts these automations without a parent context, so context ancestry alone missed their service calls.

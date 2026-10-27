@@ -27,6 +27,8 @@ from .const import (
 from .coordinator import AssistHistoryCoordinator
 from .store import TranscriptStore
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.SENSOR]
 CARD_DIRECTORY = Path(__file__).parent / "www"
