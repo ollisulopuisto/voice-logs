@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Offline checks for Assist pipeline parsing and searchable history pages."""
+
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+from types import SimpleNamespace
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / "custom_components/voice_logs/history.py"
+SPEC = importlib.util.spec_from_file_location("voice_logs_history", SOURCE)
+assert SPEC and SPEC.loader
+history = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(history)
+
+
+def event(kind: str, data: dict | None = None, second: int = 0):
+    return SimpleNamespace(
+        type=kind,
+        data=data or {},
+        timestamp=f"2026-10-27T12:00:{second:02d}+00:00",
+    )
+
+
+def check(condition: bool, message: str) -> None:
+    if not condition:
+        raise AssertionError(message)
+
+
+def main() -> int:
+    events = [
+        event(
+            "run-start",
+            {"pipeline": "pipeline-a", "satellite_id": "assist_satellite.kitchen", "language": "fi"},
+        ),
+        event("stt-end", {"stt_output": {"text": "Sataako tänään?"}}, 1),
+        event(
+            "intent-start",
+            {"engine": "conversation.home_assistant", "intent_input": "Sataako tänään?"},
+            2,
+        ),
+        event(
+            "intent-progress",
+            {"chat_log_delta": {"tool_calls": [{"tool_name": "weather.get_forecasts"}]}},
+            3,
+        ),
+        event(
+            "intent-end",
+            {
+                "processed_locally": True,
+                "intent_output": {
+                    "response": {
+                        "speech": {"plain": {"speech": "Ei sada."}},
+                        "response_type": "action_done",
+                    }
+                },
+            },
+            4,
+        ),
+        event("run-end", {}, 5),
+    ]
+    turn = history.flatten_run("run-1", events)
+    check(turn is not None, "completed voice run becomes a transcript")
+    check(turn["id"] == "run-1", "run ID is a stable transcript ID")
+    check(turn["query"] == "Sataako tänään?", "recognized utterance is captured")
+    check(turn["answer"] == "Ei sada.", "final answer is captured")
+    check(turn["finished"] and turn["status"] == "success", "completed state is captured")
+    check(turn["debug"]["mode"] == "local", "local-vs-LLM debug mode is captured")
+    check(turn["debug"]["tool_names"] == ["weather.get_forecasts"], "tool names are captured")
+
+    typed = history.flatten_run(
+        "run-2",
+        [
+            event("intent-start", {"intent_input": "Kerro vitsi"}),
+            event("tts-start", {"tts_input": "Miksi kana ylitti tien?"}, 1),
+        ],
+    )
+    check(typed is not None and typed["query"] == "Kerro vitsi", "text Assist is supported")
+    check(typed["answer"] == "Miksi kana ylitti tien?", "TTS text is used as fallback")
+    check(not typed["finished"] and typed["status"] == "in_progress", "active run remains live")
+
+    failed = history.flatten_run(
+        "run-3",
+        [
+            event("stt-end", {"stt_output": {"text": "etsi pannukakkuresepti"}}),
+            event("error", {"code": "intent-failed", "message": "Agent failed"}, 1),
+            event("run-end", {}, 2),
+        ],
+    )
+    check(failed is not None and failed["status"] == "error", "failed turns remain visible")
+    check(failed["answer"] == "Agent failed", "failure detail is a readable reply")
+    check(history.flatten_run("run-4", [event("run-start"), event("run-end")]) is None, "empty runs are skipped")
+
+    records = [
+        {"id": "3", "query": "Pizza taikina", "answer": "Kohota taikina", "hidden": False},
+        {"id": "2", "query": "Sää", "answer": "Ei sada", "hidden": True},
+        {"id": "1", "query": "Resepti", "answer": "Pannukakku", "hidden": False},
+    ]
+    page = history.history_page(records, query="pann", include_hidden=False, offset=0, limit=1)
+    check(page["total"] == 1 and page["items"][0]["id"] == "1", "search matches query and answer")
+    all_page = history.history_page(records, include_hidden=True, offset=0, limit=2)
+    check(all_page["total"] == 3 and len(all_page["items"]) == 2, "hidden toggle and pagination work")
+    check(all_page["items"][0]["id"] == "3", "history is newest first")
+    print("OK: Assist pipeline parsing, live state, debug fields, search, and pagination")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

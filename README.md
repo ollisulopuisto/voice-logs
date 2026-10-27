@@ -1,0 +1,62 @@
+# Voice Logs
+
+A Home Assistant HACS integration for a live Assist transcript and a persistent conversation archive.
+
+Voice Logs brings together three useful ideas:
+
+- **Assist Monitor:** reads all Home Assistant Assist pipelines, including local intents, AI agents, voice satellites, and typed Assist.
+- **Assist Chat Display:** shows the active request and answer as chat bubbles, then keeps completed turns in the archive.
+- **Assist Transcript:** exposes the latest question and answer through `sensor.voice_logs_latest` for dashboards and automations.
+
+The archive is stored locally in Home Assistant. It keeps text and small troubleshooting fields only; it never stores microphone audio or tool-result payloads. There is no automatic phone notification. A dashboard card lets you search older turns, hide and restore entries, page through history, and expand debug details.
+
+## Install with HACS
+
+1. Add this repository in **HACS → Integrations → ⋮ → Custom repositories** as an Integration.
+2. Install **Voice Logs** and restart Home Assistant.
+3. Go to **Settings → Devices & services → Add integration** and add **Voice Logs**.
+4. Add the card below to a dashboard. In Lovelace storage mode, the integration registers the card resource automatically.
+
+For a YAML-managed Lovelace resource list, add:
+
+```yaml
+- url: /voice_logs/voice-logs-card.js?v=0.1.0
+  type: module
+```
+
+## Dashboard card
+
+```yaml
+type: custom:voice-logs-card
+title: Puheavustajan keskustelut
+page_size: 20
+```
+
+Add this card to the existing **Puhevastaukset** dashboard tab to keep it alongside saved recipe and search answers. The query and response text is selectable for copy and paste.
+
+The card starts with visible conversations, newest first. Search covers the complete archive, including hidden conversations only when **Näytä piilotetut** is enabled. Use **Piilota** to take a turn out of the default view and **Palauta** to bring it back. Hiding never deletes a turn. The **Debug-tiedot** section shows available pipeline, satellite, language, agent, local-vs-AI, tool-name, and error information.
+
+## Latest answer sensor
+
+The integration creates `sensor.voice_logs_latest`. Its state is a short version of the latest response; attributes include the full `question`, `answer`, `created_at`, `run_id`, `debug`, `active`, and `total_conversations`.
+
+## Actions
+
+The integration provides `voice_logs.hide_conversation` and `voice_logs.restore_conversation`, each taking a `conversation_id`. The chat card uses these actions for its hide/restore controls.
+
+## Capture and compatibility
+
+Home Assistant does not put Assist pipeline messages on the event bus. Voice Logs follows the read-only approach used by Assist Monitor: it polls `hass.data["assist_pipeline"].pipeline_debug`, also refreshing when an Assist satellite changes state. Completed turns are persisted immediately in the integration's Store, so the archive outlives Home Assistant's small in-memory debug window and restarts. The integration also imports any still-available completed runs when first set up.
+
+`pipeline_debug` is an internal Home Assistant structure rather than a stable public API. Voice Logs checks for missing or changed data and logs a warning without modifying or patching Home Assistant's pipeline code.
+
+## Development
+
+Run the standalone checks with:
+
+```bash
+python3 tests/test_pipeline_reader.py
+python3 -m compileall -q custom_components/voice_logs
+```
+
+Before publishing this local project to GitHub for HACS, replace the placeholder repository URL in `custom_components/voice_logs/manifest.json` and set `codeowners` to the GitHub username that will maintain it. Then push the repository and add its GitHub URL in HACS as a custom integration repository.

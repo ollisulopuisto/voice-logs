@@ -1,0 +1,18 @@
+hide_conversation:
+  name: Hide conversation
+  description: Hide a transcript from the default Voice Logs view while keeping it searchable and restorable.
+  fields:
+    conversation_id:
+      name: Conversation ID
+      required: true
+      selector:
+        text:
+restore_conversation:
+  name: Restore conversation
+  description: Restore a hidden transcript to the default Voice Logs view.
+  fields:
+    conversation_id:
+      name: Conversation ID
+      required: true
+      selector:
+        text:

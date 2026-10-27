@@ -1,0 +1,13 @@
+{
+  "domain": "voice_logs",
+  "name": "Voice Logs",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["frontend", "http"],
+  "after_dependencies": ["assist_pipeline", "lovelace"],
+  "documentation": "https://github.com/your-user/voice-logs",
+  "integration_type": "helper",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "0.1.0"
+}
