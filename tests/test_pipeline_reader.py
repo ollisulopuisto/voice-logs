@@ -68,6 +68,71 @@ def main() -> int:
     check(turn["finished"] and turn["status"] == "success", "completed state is captured")
     check(turn["debug"]["mode"] == "local", "local-vs-LLM debug mode is captured")
     check(turn["debug"]["tool_names"] == ["weather.get_forecasts"], "tool names are captured")
+    check(turn["actions"][0]["status"] == "requested", "a tool call alone is not claimed successful")
+
+    action_events = [
+        event("intent-start", {"intent_input": "Lisää margariini ostoslistalle"}),
+        event("intent-progress", {"chat_log_delta": {"tool_calls": [
+            SimpleNamespace(id="call-1", tool_name="script__lisaa_ostoslistaan", tool_args={"tuote": "margariini", "private": "do not store"}),
+            SimpleNamespace(id="call-2", tool_name="script__lisaa_ostoslistaan", tool_args={"tuote": "maito"}),
+        ]}}),
+        event("intent-progress", {"chat_log_delta": {
+            "role": "tool_result", "tool_call_id": "call-1", "tool_name": "script__lisaa_ostoslistaan",
+            "result": SimpleNamespace(data={"large_private_payload": "not stored"}, error=False),
+        }}),
+        event("intent-progress", {"chat_log_delta": {
+            "role": "tool_result", "tool_call_id": "call-2", "tool_name": "script__lisaa_ostoslistaan",
+            "result": {"data": {"error": "service failed"}, "error": True},
+        }}),
+        event("run-end"),
+    ]
+    actions = history.flatten_run("actions", action_events)["actions"]
+    check(len(actions) == 2, "repeated tools remain separate operations by call ID")
+    check(actions[0]["parameters"] == {"tuote": "margariini"}, "live HA ToolInput objects expose only selected useful parameters")
+    check(actions[0]["status"] == "returned" and actions[1]["status"] == "failed", "tool results are matched to the right operation")
+    check("private" not in str(actions), "raw tool result bodies and unrelated arguments are not stored")
+
+    local = history.flatten_run("local", [
+        event("intent-start", {"intent_input": "Sammuta valot"}),
+        event("intent-end", {"intent_output": {"response": {
+            "response_type": "action_done", "data": {
+                "success": [{"name": "Olohuone", "id": "light.living"}],
+                "failed": [{"name": "Keittiö", "id": "light.kitchen"}],
+            },
+        }}}), event("run-end"),
+    ])
+    check(local["actions"][0]["targets"] == ["Olohuone"], "local intent results retain readable targets")
+    check([a["status"] for a in local["actions"]] == ["completed", "failed"], "partial local outcomes keep successes and failures distinct")
+    rejected = history.flatten_run("rejected", [
+        event("intent-start", {"intent_input": "Unrecognized command"}),
+        event("intent-end", {"intent_output": {"response": {"response_type": "error", "data": {"code": "no_intent_match"}}}}),
+        event("run-end"),
+    ])
+    check(rejected["status"] == "error", "intent error responses are failures even without a pipeline error event")
+
+    capture = history.ServiceActionCapture()
+    runs = [SimpleNamespace(id="local-run", context=SimpleNamespace(id="assist-context"))]
+    def service(context_id, parent_id, domain="script", name="lisaa_ostoslistaan"):
+        return SimpleNamespace(
+            context=SimpleNamespace(id=context_id, parent_id=parent_id),
+            data={"domain": domain, "service": name, "service_data": {"tuote": "margariini", "message": "private body"}},
+        )
+    capture.record(service("automation-context", "assist-context"), runs)
+    capture.record(service("script-context", "automation-context", "todo", "add_item"), runs)
+    capture.record(service("unrelated", "different-context"), runs)
+    finished = {"run_id": "local-run", "finished": True, "actions": []}
+    capture.enrich([finished], [])
+    check([a["name"] for a in finished["actions"]] == ["script.lisaa_ostoslistaan", "todo.add_item"], "native script and child service calls follow the Assist context chain")
+    check(all(a["status"] == "called" for a in finished["actions"]), "service dispatch is not claimed to confirm success")
+    check("private body" not in str(finished), "service message payloads are not archived")
+    capture.record(service("late", "automation-context"), runs)
+    next_turn = {"run_id": "local-run", "finished": True, "actions": []}
+    capture.enrich([next_turn], [])
+    check(not next_turn["actions"], "finished run contexts are forgotten")
+    ambiguous = [*runs, SimpleNamespace(id="other", context=SimpleNamespace(id="assist-context"))]
+    capture.record(service("ambiguous", "assist-context"), ambiguous)
+    capture.enrich([next_turn], [])
+    check(not next_turn["actions"], "ambiguous simultaneous contexts are not guessed")
 
     typed = history.flatten_run(
         "run-2",
@@ -102,6 +167,8 @@ def main() -> int:
     all_page = history.history_page(records, include_hidden=True, offset=0, limit=2)
     check(all_page["total"] == 3 and len(all_page["items"]) == 2, "hidden toggle and pagination work")
     check(all_page["items"][0]["id"] == "3", "history is newest first")
+    action_page = history.history_page([local], query="keittiö")
+    check(action_page["total"] == 1, "search also covers recorded action targets")
     print("OK: Assist pipeline parsing, live state, debug fields, search, and pagination")
     return 0
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Replace the default debug section with **Toiminta**: recorded operations, targets, selected parameters, and honest outcome labels.
+- Capture native Assist service dispatches through their active context, including nested scripts, without patching Home Assistant.
+- Capture actual HA ToolInput/ToolResult objects and serialized debug events, distinguishing calls from results and failures.
+- Keep technical fields available through `show_diagnostics: true` and include actions in archive search.
+- Enrich older entries only when the original debug evidence is still available, preserving hidden state.
+
 ## 0.2.1
 
 - Fix the latest-answer sensor reporting `unknown` despite having a saved answer. It now uses Home Assistant's sensor entity implementation.

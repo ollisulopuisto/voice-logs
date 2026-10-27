@@ -44,8 +44,16 @@ class TranscriptStore:
         if not run_id or not turn.get("finished"):
             return False
         async with self._write_lock:
-            if any(record.get("run_id") == run_id for record in self.records):
-                return False
+            existing = next((record for record in self.records if record.get("run_id") == run_id), None)
+            if existing is not None:
+                if "actions" in existing:
+                    return False
+                # Enrich pre-upgrade records only when their original debug run
+                # still exists; keep the user's hidden state and transcript.
+                existing["actions"] = turn.get("actions", [])
+                existing.setdefault("debug", {})["tool_names"] = turn.get("debug", {}).get("tool_names", [])
+                await self._async_save()
+                return True
             record = {**turn, "id": run_id, "run_id": run_id, "hidden": False}
             self.records.insert(0, record)
             await self._async_save()
@@ -90,7 +98,7 @@ class TranscriptStore:
         )
 
     async def _async_save(self) -> None:
-        self.updated_at = datetime.now().astimezone().isoformat(timespec="seconds")
+        self.updated_at = datetime.now().astimezone().isoformat(timespec="microseconds")
         await self._store.async_save(
             {"records": self.records, "updated_at": self.updated_at}
         )

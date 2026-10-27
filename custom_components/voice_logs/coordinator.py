@@ -13,7 +13,7 @@ from homeassistant.helpers.event import (
     async_track_time_interval,
 )
 
-from .history import parse_all
+from .history import ServiceActionCapture, active_pipeline_runs, parse_all
 from .store import TranscriptStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,12 +28,14 @@ class AssistHistoryCoordinator:
         self.store = store
         self._refresh_lock = asyncio.Lock()
         self._started = False
+        self._service_capture = ServiceActionCapture()
 
     async def async_start(self, entry) -> None:
         """Start the safety poll and satellite-state refresh listener."""
         if self._started:
             return
         self._started = True
+        entry.async_on_unload(self.hass.bus.async_listen("call_service", self._on_service_call))
         entry.async_on_unload(
             async_track_time_interval(
                 self.hass, self._async_interval_refresh, POLL_INTERVAL
@@ -49,6 +51,10 @@ class AssistHistoryCoordinator:
         await self.async_refresh()
 
     @callback
+    def _on_service_call(self, event: Event) -> None:
+        self._service_capture.record(event, active_pipeline_runs(self.hass))
+
+    @callback
     def _on_satellite_state(self, _event: Event) -> None:
         self.hass.async_create_task(self.async_refresh())
 
@@ -61,6 +67,7 @@ class AssistHistoryCoordinator:
         async with self._refresh_lock:
             try:
                 turns = parse_all(self.hass)
+                self._service_capture.enrich(turns, active_pipeline_runs(self.hass))
             except Exception as err:  # Guard the live Assist path from internal API drift.
                 _LOGGER.warning("Could not read Assist debug history: %s", err)
                 return

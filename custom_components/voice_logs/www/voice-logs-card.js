@@ -78,6 +78,9 @@ class VoiceLogsCard extends HTMLElement {
         summary { cursor:pointer; width:max-content; }
         .debug { display:grid; grid-template-columns:max-content 1fr; gap:3px 10px; margin:8px 0; }
         .debug dt { opacity:.75; } .debug dd { margin:0; overflow-wrap:anywhere; color:var(--primary-text-color); }
+        .actions { padding-left:20px; color:var(--primary-text-color); }
+        .actions li { margin:8px 0; overflow-wrap:anywhere; }
+        .outcome, .parameters { color:var(--secondary-text-color); font-size:.82rem; margin-top:3px; }
         .empty, .error { padding:16px 4px; text-align:center; color:var(--secondary-text-color); }
         .error { color:var(--error-color); }
         .pager { display:flex; justify-content:center; padding-top:14px; }
@@ -221,9 +224,93 @@ class VoiceLogsCard extends HTMLElement {
     meta.append(action);
     box.append(meta);
 
+    box.append(this._renderActions(turn));
+    if (this._config.show_diagnostics === true) box.append(this._renderDiagnostics(debug));
+    return box;
+  }
+
+  _renderActions(turn) {
     const details = document.createElement("details");
     const summary = document.createElement("summary");
-    summary.textContent = "Debug-tiedot";
+    summary.textContent = "Toiminta";
+    details.append(summary);
+    const operations = turn.actions?.length ? turn.actions : (turn.debug?.tool_names || []).map((name) => ({
+      name, status: "historical", targets: [], parameters: {},
+    }));
+    if (!operations.length) {
+      const note = document.createElement("p");
+      note.textContent = turn.status === "error"
+        ? "Pyyntö epäonnistui."
+        : turn.debug?.response_type === "query_answer"
+          ? "Vastattiin kysymykseen."
+          : "Tarkempia toimintatietoja ei tallennettu tälle vastaukselle.";
+      details.append(note);
+      return details;
+    }
+    const list = document.createElement("ul");
+    list.className = "actions";
+    const outcomes = {
+      completed: "Suoritettu", failed: "Epäonnistui", answered: "Tiedot luettu",
+      called: "Palvelukutsu tehty",
+      returned: "Työkalu palautti tuloksen", requested: "Kutsu tehtiin, tulosta ei vahvistettu",
+      historical: "Kutsu tallennettu; tulostietoa ei ole saatavilla",
+    };
+    const labels = {
+      entity_id: "Kohde", name: "Nimi", area: "Alue", area_id: "Alue",
+      item: "Tuote", tuote: "Tuote", lista: "Lista", haku: "Hakusana",
+      temperature: "Lämpötila", brightness: "Kirkkaus", volume_level: "Äänenvoimakkuus",
+      domain: "Palvelualue", service: "Palvelu",
+    };
+    for (const operation of operations) {
+      const item = document.createElement("li");
+      const title = document.createElement("strong");
+      title.textContent = this._actionLabel(operation.name);
+      item.append(title);
+      if (operation.targets?.length) {
+        item.append(document.createTextNode(` — ${operation.targets.map((target) => this._targetLabel(target)).join(", ")}`));
+      }
+      const outcome = document.createElement("div");
+      outcome.className = "outcome";
+      outcome.textContent = outcomes[operation.status] || "Tulosta ei vahvistettu";
+      item.append(outcome);
+      for (const [key, value] of Object.entries(operation.parameters || {})) {
+        const parameter = document.createElement("div");
+        parameter.className = "parameters";
+        const values = Array.isArray(value) ? value : [value];
+        parameter.textContent = `${labels[key] || key}: ${values.map((v) => this._targetLabel(v)).join(", ")}`;
+        item.append(parameter);
+      }
+      list.append(item);
+    }
+    details.append(list);
+    return details;
+  }
+
+  _targetLabel(value) {
+    return this._hass?.states?.[value]?.attributes?.friendly_name || String(value);
+  }
+
+  _actionLabel(name) {
+    const normalized = String(name || "").replace(/^script__/, "script.");
+    const labels = {
+      HassTurnOn: "Kytkentä päälle", HassTurnOff: "Kytkentä pois",
+      HassLightSet: "Valaistuksen säätö", HassClimateSetTemperature: "Lämpötilan asetus",
+      HassGetState: "Tilan tarkistus", "todo.add_item": "Lisäys listalle",
+      "todo.get_items": "Listan lukeminen", "script.lisaa_ostoslistaan": "Lisäys ostoslistalle",
+      "script.lue_ostoslista": "Ostoslistan lukeminen", "script.ostoslista_onko": "Ostoslistan tarkistus",
+      "script.hae_tietoa": "Tietojen haku", "script.saa": "Säätietojen haku",
+      "script.mika_soi": "Toiston tarkistus", "script.lue_aamukatsaus": "Aamukatsauksen lukeminen",
+      action_done: "Kodin ohjaus", partial_action_done: "Kodin ohjaus", query_answer: "Tietojen lukeminen",
+    };
+    if (labels[normalized]) return labels[normalized];
+    const words = normalized.replace(/^script\./, "").replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2");
+    return words ? words[0].toUpperCase() + words.slice(1) : "Toiminto";
+  }
+
+  _renderDiagnostics(debug) {
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = "Tekniset tiedot";
     details.append(summary);
     const list = document.createElement("dl");
     list.className = "debug";
@@ -243,8 +330,7 @@ class VoiceLogsCard extends HTMLElement {
       list.append(dt, dd);
     }
     details.append(list);
-    box.append(details);
-    return box;
+    return details;
   }
 
   _bubble(role, text) {
