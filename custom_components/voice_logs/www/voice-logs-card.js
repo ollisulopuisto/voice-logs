@@ -266,8 +266,111 @@ class VoiceLogsCard extends HTMLElement {
   }
 }
 
+class VoiceLogsLatestCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._ready = false;
+    this._messageId = "";
+    this._dismissTimer = null;
+    this._hideTimer = null;
+  }
+
+  setConfig(config) {
+    this._config = config || {};
+    const delay = Number(this._config.dismiss_after ?? 30);
+    this._dismissAfter = Number.isFinite(delay) ? Math.max(0, delay) : 30;
+    this._ensureDom();
+    this.shadowRoot.querySelector("h2").textContent = this._config.title || "Vastaus valmis";
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (!this._ready) return;
+    const state = hass.states[this._config?.entity || "sensor.voice_logs_latest"];
+    const attrs = state?.attributes || {};
+    const answer = String(attrs.answer || state?.state || "").trim();
+    const messageId = attrs.run_id || attrs.history_updated || "";
+    if (!answer || !messageId) {
+      this._messageId = "";
+      this._cancelTimers();
+      this.shadowRoot.querySelector("ha-card").hidden = true;
+      return;
+    }
+    if (messageId === this._messageId) return;
+
+    this._messageId = messageId;
+    this._cancelTimers();
+    const card = this.shadowRoot.querySelector("ha-card");
+    card.classList.remove("is-dismissing");
+    card.hidden = false;
+    this.shadowRoot.querySelector(".question").textContent = this._config.show_question
+      ? String(attrs.question || "")
+      : "";
+    this.shadowRoot.querySelector(".question").hidden = !this._config.show_question || !attrs.question;
+    this.shadowRoot.querySelector(".answer").textContent = answer;
+
+    if (this._dismissAfter > 0) {
+      this._dismissTimer = setTimeout(() => this._dismiss(), this._dismissAfter * 1000);
+    }
+  }
+
+  disconnectedCallback() {
+    this._cancelTimers();
+  }
+
+  getCardSize() {
+    return 2;
+  }
+
+  static getStubConfig() {
+    return { dismiss_after: 30 };
+  }
+
+  _ensureDom() {
+    if (this._ready) return;
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host { display:block; color:var(--primary-text-color); }
+        ha-card { padding:14px 18px; overflow:hidden; transition:opacity .28s ease, transform .28s ease; }
+        ha-card[hidden] { display:none; }
+        ha-card.is-dismissing { opacity:0; transform:translateY(-6px); }
+        h2 { font-size:1rem; line-height:1.3; margin:0 0 7px; color:var(--secondary-text-color); }
+        .question { margin:0 0 6px; color:var(--secondary-text-color); font-size:.88rem; }
+        .answer { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.45; user-select:text; }
+      </style>
+      <ha-card hidden>
+        <h2></h2>
+        <p class="question" hidden></p>
+        <p class="answer"></p>
+      </ha-card>`;
+    this._ready = true;
+  }
+
+  _dismiss() {
+    const card = this.shadowRoot.querySelector("ha-card");
+    card.classList.add("is-dismissing");
+    this._hideTimer = setTimeout(() => {
+      card.hidden = true;
+      card.classList.remove("is-dismissing");
+      this._hideTimer = null;
+    }, 300);
+    this._dismissTimer = null;
+  }
+
+  _cancelTimers() {
+    clearTimeout(this._dismissTimer);
+    clearTimeout(this._hideTimer);
+    this._dismissTimer = null;
+    this._hideTimer = null;
+  }
+}
+
 if (!customElements.get("voice-logs-card")) {
   customElements.define("voice-logs-card", VoiceLogsCard);
+}
+if (!customElements.get("voice-logs-latest-card")) {
+  customElements.define("voice-logs-latest-card", VoiceLogsLatestCard);
 }
 
 window.customCards = window.customCards || [];
@@ -276,6 +379,14 @@ if (!window.customCards.some((card) => card.type === "voice-logs-card")) {
     type: "voice-logs-card",
     name: "Voice Logs",
     description: "Live Assist conversations and searchable persistent history",
+    preview: true,
+  });
+}
+if (!window.customCards.some((card) => card.type === "voice-logs-latest-card")) {
+  window.customCards.push({
+    type: "voice-logs-latest-card",
+    name: "Voice Logs Latest Reply",
+    description: "Show the latest Assist reply briefly, then hide it",
     preview: true,
   });
 }

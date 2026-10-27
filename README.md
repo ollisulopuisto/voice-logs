@@ -20,11 +20,11 @@ The archive is stored locally in Home Assistant. It keeps text and small trouble
 For a YAML-managed Lovelace resource list, add:
 
 ```yaml
-- url: /voice_logs/voice-logs-card.js?v=0.1.0
+- url: /voice_logs/voice-logs-card.js?v=0.2.0
   type: module
 ```
 
-## Dashboard card
+## Persistent conversation card
 
 ```yaml
 type: custom:voice-logs-card
@@ -36,9 +36,22 @@ Add this card to the existing **Puhevastaukset** dashboard tab to keep it alongs
 
 The card starts with visible conversations, newest first. Search covers the complete archive, including hidden conversations only when **Näytä piilotetut** is enabled. Use **Piilota** to take a turn out of the default view and **Palauta** to bring it back. Hiding never deletes a turn. The **Debug-tiedot** section shows available pipeline, satellite, language, agent, local-vs-AI, tool-name, and error information.
 
+## Latest reply card
+
+Use the separate transient card on a tablet dashboard. Its timer is part of the card's frontend behavior, so it hides only this display; the archived conversation stays in the persistent card and sensor.
+
+```yaml
+type: custom:voice-logs-latest-card
+title: Vastaus valmis
+dismiss_after: 30
+show_question: false
+```
+
+`dismiss_after` is seconds (30 by default). Set it to `0` to keep the card visible until another reply arrives. `show_question: true` also displays what was asked. A new completed Assist answer reappears and restarts the timer. The card tracks the latest answer from `sensor.voice_logs_latest`; opening or reloading the dashboard shows that latest answer and starts a fresh timer.
+
 ## Latest answer sensor
 
-The integration creates `sensor.voice_logs_latest`. Its state is a short version of the latest response; attributes include the full `question`, `answer`, `created_at`, `run_id`, `debug`, `active`, and `total_conversations`.
+The integration creates `sensor.voice_logs_latest`. Its state is a short version of the latest response; attributes include the full `question`, `answer`, `created_at`, `run_id`, `debug`, `active`, and `total_conversations`. Both cards use this sensor; the persistent card also loads the archive through the integration's WebSocket API.
 
 ## Actions
 
