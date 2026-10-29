@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.5
+
+- Align user messages on the left and Assist replies on the right.
+
 ## 0.3.4
 
 - Register each card's visual editor through Home Assistant's custom-card configuration hook.

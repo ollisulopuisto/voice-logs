@@ -87,13 +87,13 @@ class VoiceLogsCard extends HTMLElement {
         .status { color:var(--secondary-text-color); font-size:.85rem; text-align:center; margin:4px 0 10px; }
         .turn { padding:8px 0; border-bottom:1px solid var(--divider-color); }
         .bubble-row { display:flex; margin:5px 0; }
-        .bubble-row.user { justify-content:flex-end; }
-        .bubble-row.assistant { justify-content:flex-start; }
+        .bubble-row.user { justify-content:flex-start; }
+        .bubble-row.assistant { justify-content:flex-end; }
         .bubble { max-width:88%; white-space:pre-wrap; overflow-wrap:anywhere; user-select:text;
           padding:10px 14px; line-height:1.4; border-radius:18px; }
         .user .bubble { color:var(--text-primary-color,#fff); background:var(--primary-color);
-          border-bottom-right-radius:4px; }
-        .assistant .bubble { background:var(--secondary-background-color); border-bottom-left-radius:4px; }
+          border-bottom-left-radius:4px; }
+        .assistant .bubble { background:var(--secondary-background-color); border-bottom-right-radius:4px; }
         .meta { display:flex; gap:10px; align-items:center; flex-wrap:wrap; color:var(--secondary-text-color);
           font-size:.78rem; margin:6px 2px 3px; }
         button { border:0; border-radius:9px; padding:6px 10px; color:var(--primary-color);
