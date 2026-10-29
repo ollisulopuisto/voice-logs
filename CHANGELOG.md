@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.7
+
+- Move timestamps beside user messages and use relative time for the last three calendar days.
+- Replace the permanent action row with play and hide/restore icons beside the Assistant reply.
+
 ## 0.3.6
 
 - Add theme-aware CSS custom properties for chat colors and document theme overrides.

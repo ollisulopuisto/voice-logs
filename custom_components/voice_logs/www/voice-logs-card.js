@@ -90,29 +90,36 @@ class VoiceLogsCard extends HTMLElement {
         .status { color:var(--voice-logs-muted-color, var(--secondary-text-color));
           font-size:.85rem; text-align:center; margin:4px 0 10px; }
         .turn { padding:8px 0; border-bottom:1px solid var(--voice-logs-divider-color, var(--divider-color)); }
-        .bubble-row { display:flex; margin:5px 0; }
-        .bubble-row.user { justify-content:flex-start; }
-        .bubble-row.assistant { justify-content:flex-end; }
-        .bubble { max-width:88%; white-space:pre-wrap; overflow-wrap:anywhere; user-select:text;
+        .bubble-row { display:flex; align-items:flex-end; margin:5px 0; }
+        .bubble-row.user { justify-content:flex-start; gap:8px; flex-wrap:wrap; }
+        .bubble-row.assistant { justify-content:flex-end; gap:6px; }
+        .bubble { box-sizing:border-box; max-width:88%; white-space:pre-wrap; overflow-wrap:anywhere; user-select:text;
           padding:10px 14px; line-height:1.4; border-radius:18px; }
+        .bubble-row.assistant .bubble { max-width:min(88%, calc(100% - 76px)); }
         .user .bubble { color:var(--voice-logs-user-bubble-color, var(--text-primary-color, #fff));
           background:var(--voice-logs-user-bubble-background, var(--primary-color));
           border-bottom-left-radius:4px; }
         .assistant .bubble { color:var(--voice-logs-assistant-bubble-color, var(--primary-text-color));
           background:var(--voice-logs-assistant-bubble-background, var(--secondary-background-color));
           border-bottom-right-radius:4px; }
-        .turn-footer { display:flex; justify-content:flex-end; align-items:center; gap:8px 16px;
-          flex-wrap:wrap; margin:6px 2px 3px; }
-        .meta { display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap;
-          color:var(--voice-logs-muted-color, var(--secondary-text-color)); font-size:.78rem; text-align:right; }
-        .meta time { white-space:nowrap; }
+        .message-meta { display:flex; gap:7px; align-items:center; flex-wrap:wrap;
+          color:var(--voice-logs-muted-color, var(--secondary-text-color)); font-size:.72rem; }
+        .message-meta time { white-space:nowrap; }
         button { border:0; border-radius:9px; padding:6px 10px;
           color:var(--voice-logs-control-color, var(--primary-color));
           background:var(--voice-logs-control-background, color-mix(in srgb, var(--primary-color) 12%, transparent));
           cursor:pointer; font:inherit; }
         button[disabled] { opacity:.45; cursor:default; }
-        details { margin-top:6px; font-size:.84rem; color:var(--voice-logs-muted-color, var(--secondary-text-color)); }
-        .turn-footer > details { margin:0; }
+        .bubble-actions { display:flex; flex:0 0 auto; gap:4px; align-items:center; padding-bottom:2px; }
+        .icon-button { display:grid; place-items:center; width:30px; height:30px; padding:0;
+          border-radius:50%; }
+        .icon-button ha-icon { --mdc-icon-size:17px; }
+        .activity-panel { max-width:min(520px, 100%); margin:4px 0 8px auto; padding:8px 12px;
+          border-radius:12px; background:var(--voice-logs-input-background, var(--card-background-color));
+          color:var(--voice-logs-muted-color, var(--secondary-text-color)); font-size:.84rem; }
+        .activity-title { margin-bottom:4px; font-size:.78rem; font-weight:600; }
+        article.turn > details { margin-top:6px; font-size:.84rem;
+          color:var(--voice-logs-muted-color, var(--secondary-text-color)); }
         summary { cursor:pointer; width:max-content; }
         .debug { display:grid; grid-template-columns:max-content 1fr; gap:3px 10px; margin:8px 0; }
         .debug dt { opacity:.75; } .debug dd { margin:0; overflow-wrap:anywhere;
@@ -127,10 +134,6 @@ class VoiceLogsCard extends HTMLElement {
         .pager { display:flex; justify-content:center; padding-top:14px; }
         .count { color:var(--voice-logs-muted-color, var(--secondary-text-color)); font-size:.8rem; margin-left:auto; }
         .hidden-tag { color:var(--voice-logs-warning-color, var(--warning-color)); }
-        @media (max-width: 600px) {
-          .turn-footer { align-items:flex-end; }
-          .meta { justify-content:flex-end; text-align:right; }
-        }
       </style>
       <ha-card>
         <h2></h2>
@@ -247,50 +250,75 @@ class VoiceLogsCard extends HTMLElement {
   _renderTurn(turn) {
     const box = document.createElement("article");
     box.className = "turn";
-    box.append(this._bubble("user", turn.query));
-    box.append(this._bubble("assistant", turn.answer || (turn.status === "error" ? "Assist ei pystynyt vastaamaan." : "Vastaus ei sisältänyt tekstiä.")));
-
-    const meta = document.createElement("div");
-    meta.className = "meta";
+    const userMeta = document.createElement("div");
+    userMeta.className = "message-meta";
     const timestampText = this._formatDate(turn.created_at);
     if (timestampText) {
       const timestamp = document.createElement("time");
-      timestamp.className = "timestamp";
       timestamp.dateTime = turn.created_at;
       timestamp.textContent = timestampText;
-      meta.append(timestamp);
+      userMeta.append(timestamp);
     }
     const debug = turn.debug || {};
     if (debug.mode) {
       const mode = document.createElement("span");
       mode.textContent = debug.mode === "local" ? "Paikallinen" : "AI";
-      meta.append(mode);
+      userMeta.append(mode);
     }
     if (turn.hidden) {
       const hidden = document.createElement("span");
       hidden.className = "hidden-tag";
       hidden.textContent = "Piilotettu";
-      meta.append(hidden);
+      userMeta.append(hidden);
     }
-    const action = document.createElement("button");
-    action.type = "button";
-    action.dataset.id = turn.id;
-    action.dataset.action = turn.hidden ? "restore" : "hide";
-    action.textContent = turn.hidden ? "Palauta" : "Piilota";
-    meta.append(action);
-    const footer = document.createElement("div");
-    footer.className = "turn-footer";
-    footer.append(this._renderActions(turn), meta);
-    box.append(footer);
+    box.append(this._bubble("user", turn.query, userMeta));
+
+    const activity = this._renderActions(turn);
+    const activityButton = this._iconButton("mdi:play", "Näytä toiminta");
+    activityButton.setAttribute("aria-expanded", "false");
+    activityButton.addEventListener("click", () => {
+      activity.hidden = !activity.hidden;
+      const open = !activity.hidden;
+      activityButton.setAttribute("aria-expanded", String(open));
+      activityButton.title = open ? "Piilota toiminta" : "Näytä toiminta";
+      activityButton.setAttribute("aria-label", activityButton.title);
+      activityButton.querySelector("ha-icon").setAttribute("icon", open ? "mdi:close" : "mdi:play");
+    });
+    const hideButton = this._iconButton(
+      turn.hidden ? "mdi:eye" : "mdi:eye-off",
+      turn.hidden ? "Palauta keskustelu" : "Piilota keskustelu",
+    );
+    hideButton.dataset.id = turn.id;
+    hideButton.dataset.action = turn.hidden ? "restore" : "hide";
+    const actions = document.createElement("div");
+    actions.className = "bubble-actions";
+    actions.append(activityButton, hideButton);
+    box.append(this._bubble("assistant", turn.answer || (turn.status === "error" ? "Assist ei pystynyt vastaamaan." : "Vastaus ei sisältänyt tekstiä."), actions));
+    box.append(activity);
     if (this._config.show_diagnostics === true) box.append(this._renderDiagnostics(debug));
     return box;
   }
 
+  _iconButton(iconName, label) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "icon-button";
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    const icon = document.createElement("ha-icon");
+    icon.setAttribute("icon", iconName);
+    button.append(icon);
+    return button;
+  }
+
   _renderActions(turn) {
-    const details = document.createElement("details");
-    const summary = document.createElement("summary");
-    summary.textContent = "Toiminta";
-    details.append(summary);
+    const details = document.createElement("div");
+    details.className = "activity-panel";
+    details.hidden = true;
+    const title = document.createElement("div");
+    title.className = "activity-title";
+    title.textContent = "Toiminta";
+    details.append(title);
     const operations = turn.actions?.length ? turn.actions : (turn.debug?.tool_names || []).map((name) => ({
       name, status: "historical", targets: [], parameters: {},
     }));
@@ -390,22 +418,38 @@ class VoiceLogsCard extends HTMLElement {
     return details;
   }
 
-  _bubble(role, text) {
+  _bubble(role, text, trailing = null) {
     const row = document.createElement("div");
     row.className = `bubble-row ${role}`;
     const bubble = document.createElement("div");
     bubble.className = "bubble";
     bubble.textContent = text || "";
     row.append(bubble);
+    if (trailing) row.append(trailing);
     return row;
   }
 
   _formatDate(value) {
     if (!value) return "";
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? "" : date.toLocaleString("fi-FI", {
-      day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit",
-    });
+    if (Number.isNaN(date.getTime())) return "";
+    const locale = this._hass?.locale?.language || navigator.language || "en";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const messageDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const ageDays = Math.round((today.getTime() - messageDay.getTime()) / 86400000);
+    if (ageDays > 2) {
+      return date.toLocaleString(locale, {
+        year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
+      });
+    }
+    const relative = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+    const time = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+    if (ageDays > 0) return `${relative.format(-ageDays, "day")} · ${time}`;
+    const minutes = Math.round((date.getTime() - Date.now()) / 60000);
+    if (Math.abs(minutes) < 1) return relative.format(0, "second");
+    if (Math.abs(minutes) < 60) return relative.format(minutes, "minute");
+    return relative.format(Math.round(minutes / 60), "hour");
   }
 }
 
