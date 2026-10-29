@@ -20,7 +20,7 @@ The archive is stored locally in Home Assistant. It keeps text and small trouble
 For a YAML-managed Lovelace resource list, add:
 
 ```yaml
-- url: /voice_logs/voice-logs-card.js?v=0.3.0
+- url: /voice_logs/voice-logs-card.js?v=0.3.3
   type: module
 ```
 
@@ -30,9 +30,10 @@ For a YAML-managed Lovelace resource list, add:
 type: custom:voice-logs-card
 title: Puheavustajan keskustelut
 page_size: 20
+height: 700px
 ```
 
-Add this card to any dashboard view. The query and response text is selectable for copy and paste. The card controls are currently in Finnish.
+The card has a visual editor in Home Assistant for its title, sensor, page size, dimensions, and diagnostic details. In wide panel views it centers the archive in a readable column up to 1200px wide; set `width` to override that default. Height and width accept CSS dimensions such as `700px`, `40rem`, or `100%`; the archive list scrolls inside a set height. The query and response text is selectable for copy and paste. The card controls are currently in Finnish.
 
 The card starts with visible conversations, newest first. Search covers the complete archive, including hidden conversations only when **Näytä piilotetut** is enabled. Use **Piilota** to take a turn out of the default view and **Palauta** to bring it back. Hiding never deletes a turn. The **Toiminta** section shows the recorded operation, its targets or selected parameters, and the available outcome. It covers AI tool calls, native intent targets, and service calls connected to the active Assist context. A service dispatch is labelled **Palvelukutsu tehty**, not claimed as a confirmed success. Unfinished or historical calls without results are labelled explicitly.
 
@@ -57,6 +58,8 @@ show_question: false
 ```
 
 `dismiss_after` is seconds (30 by default). Set it to `0` to keep the card visible until another reply arrives. `show_question: true` also displays what was asked. A new completed Assist answer reappears and restarts the timer. The card tracks the latest answer from `sensor.voice_logs_latest`; opening or reloading the dashboard shows that latest answer and starts a fresh timer.
+
+The latest-reply card also has a Home Assistant visual editor for its title, sensor, dismissal delay, dimensions, and question visibility.
 
 ## Latest answer sensor
 

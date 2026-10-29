@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3
+
+- Add Home Assistant visual editors for both cards, including configurable dimensions.
+- Center the archive in panel views and keep its conversation list readable on wide screens.
+
 ## 0.3.2
 
 - Add HACS and Hassfest validation, repository metadata, and a local integration icon.

@@ -17,6 +17,7 @@ class VoiceLogsCard extends HTMLElement {
     this._config = config || {};
     this._pageSize = Math.min(100, Math.max(5, Number(this._config.page_size) || 20));
     this._ensureDom();
+    this._applyDimensions();
     this._render();
   }
 
@@ -45,12 +46,31 @@ class VoiceLogsCard extends HTMLElement {
     return {};
   }
 
+  _applyDimensions() {
+    const width = cssDimension(this._config?.width, "width");
+    this.style.width = width || "100%";
+    this.style.maxWidth = width ? "100%" : "1200px";
+    this.style.marginInline = "auto";
+    const card = this.shadowRoot.querySelector("ha-card");
+    card.style.boxSizing = "border-box";
+    card.style.maxWidth = "100%";
+    card.style.marginInline = "auto";
+    const height = cssDimension(this._config?.height, "height");
+    card.style.height = height || "";
+    card.style.display = height ? "flex" : "";
+    card.style.flexDirection = height ? "column" : "";
+    const history = this.shadowRoot.querySelector(".history");
+    history.style.minHeight = height ? "0" : "";
+    history.style.overflowY = height ? "auto" : "";
+    history.style.flex = height ? "1 1 auto" : "";
+  }
+
   _ensureDom() {
     if (this._ready) return;
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display:block; color:var(--primary-text-color); }
-        ha-card { padding:16px; overflow:hidden; }
+        :host { display:block; width:100%; max-width:1200px; margin-inline:auto; color:var(--primary-text-color); }
+        ha-card { padding:clamp(12px, 2vw, 24px); overflow:hidden; }
         h2 { font-size:1.2rem; margin:0 0 14px; }
         .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
         input[type=search] { flex:1 1 200px; min-width:130px; box-sizing:border-box; padding:10px 12px;
@@ -59,6 +79,7 @@ class VoiceLogsCard extends HTMLElement {
         label { display:flex; gap:8px; align-items:center; font-size:.9rem; color:var(--secondary-text-color); }
         .live { margin-bottom:12px; }
         .live:empty { display:none; }
+        .history { min-width:0; }
         .status { color:var(--secondary-text-color); font-size:.85rem; text-align:center; margin:4px 0 10px; }
         .turn { padding:8px 0; border-bottom:1px solid var(--divider-color); }
         .bubble-row { display:flex; margin:5px 0; }
@@ -368,6 +389,7 @@ class VoiceLogsLatestCard extends HTMLElement {
     this._dismissAfter = Number.isFinite(delay) ? Math.max(0, delay) : 30;
     this._ensureDom();
     this.shadowRoot.querySelector("h2").textContent = this._config.title || "Vastaus valmis";
+    this._applyDimensions();
   }
 
   set hass(hass) {
@@ -413,6 +435,18 @@ class VoiceLogsLatestCard extends HTMLElement {
     return { dismiss_after: 30 };
   }
 
+  _applyDimensions() {
+    const width = cssDimension(this._config?.width, "width");
+    this.style.width = width || "100%";
+    this.style.maxWidth = width ? "100%" : "960px";
+    this.style.marginInline = "auto";
+    const card = this.shadowRoot.querySelector("ha-card");
+    const height = cssDimension(this._config?.height, "height");
+    card.style.height = height || "";
+    card.style.boxSizing = height ? "border-box" : "";
+    card.style.overflowY = height ? "auto" : "";
+  }
+
   _ensureDom() {
     if (this._ready) return;
     this.shadowRoot.innerHTML = `
@@ -452,11 +486,109 @@ class VoiceLogsLatestCard extends HTMLElement {
   }
 }
 
+function cssDimension(value, property) {
+  if (value === undefined || value === null || value === "") return "";
+  const dimension = typeof value === "number" ? `${value}px` : String(value).trim();
+  return window.CSS?.supports?.(property, dimension) ? dimension : "";
+}
+
+class VoiceLogsCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._config = {};
+    this._schema = [
+      { name: "title", selector: { text: {} } },
+      { name: "entity", selector: { entity: { domain: "sensor" } } },
+      { name: "page_size", selector: { number: { min: 5, max: 100, step: 1, mode: "box" } } },
+      { name: "height", selector: { text: {} } },
+      { name: "width", selector: { text: {} } },
+      { name: "show_diagnostics", selector: { boolean: {} } },
+    ];
+  }
+
+  setConfig(config) {
+    this._config = { ...config };
+    this._render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  _render() {
+    if (!this._hass) return;
+    let form = this.shadowRoot.querySelector("ha-form");
+    if (!form) {
+      this.shadowRoot.innerHTML = `<ha-form></ha-form>`;
+      form = this.shadowRoot.querySelector("ha-form");
+      form.addEventListener("value-changed", (event) => {
+        event.stopPropagation();
+        this._config = { ...event.detail.value };
+        this.dispatchEvent(new CustomEvent("config-changed", {
+          detail: { config: this._config }, bubbles: true, composed: true,
+        }));
+      });
+    }
+    form.hass = this._hass;
+    form.data = this._config;
+    form.schema = this._schema;
+    form.computeLabel = (schema) => ({
+      title: "Title", entity: "Entity", page_size: "Conversations per page",
+      height: "Height", width: "Width", show_diagnostics: "Show diagnostics",
+    })[schema.name] || schema.name;
+  }
+}
+
+class VoiceLogsLatestCardEditor extends VoiceLogsCardEditor {
+  constructor() {
+    super();
+    this._schema = [
+      { name: "title", selector: { text: {} } },
+      { name: "entity", selector: { entity: { domain: "sensor" } } },
+      { name: "dismiss_after", selector: { number: { min: 0, max: 3600, step: 1, mode: "box" } } },
+      { name: "height", selector: { text: {} } },
+      { name: "width", selector: { text: {} } },
+      { name: "show_question", selector: { boolean: {} } },
+    ];
+  }
+
+  _render() {
+    if (!this._hass) return;
+    let form = this.shadowRoot.querySelector("ha-form");
+    if (!form) {
+      this.shadowRoot.innerHTML = `<ha-form></ha-form>`;
+      form = this.shadowRoot.querySelector("ha-form");
+      form.addEventListener("value-changed", (event) => {
+        event.stopPropagation();
+        this._config = { ...event.detail.value };
+        this.dispatchEvent(new CustomEvent("config-changed", {
+          detail: { config: this._config }, bubbles: true, composed: true,
+        }));
+      });
+    }
+    form.hass = this._hass;
+    form.data = this._config;
+    form.schema = this._schema;
+    form.computeLabel = (schema) => ({
+      title: "Title", entity: "Entity", dismiss_after: "Dismiss after (seconds)",
+      height: "Height", width: "Width", show_question: "Show question",
+    })[schema.name] || schema.name;
+  }
+}
+
 if (!customElements.get("voice-logs-card")) {
   customElements.define("voice-logs-card", VoiceLogsCard);
 }
 if (!customElements.get("voice-logs-latest-card")) {
   customElements.define("voice-logs-latest-card", VoiceLogsLatestCard);
+}
+if (!customElements.get("voice-logs-card-editor")) {
+  customElements.define("voice-logs-card-editor", VoiceLogsCardEditor);
+}
+if (!customElements.get("voice-logs-latest-card-editor")) {
+  customElements.define("voice-logs-latest-card-editor", VoiceLogsLatestCardEditor);
 }
 
 window.customCards = window.customCards || [];
