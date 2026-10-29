@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.6
+
+- Add theme-aware CSS custom properties for chat colors and document theme overrides.
+- Group the timestamp and hide/restore control under the reply, with **Toiminta** beside the exchange.
+
 ## 0.3.5
 
 - Align user messages on the left and Assist replies on the right.

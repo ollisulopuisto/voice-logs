@@ -20,7 +20,7 @@ The archive is stored locally in Home Assistant. It keeps text and small trouble
 For a YAML-managed Lovelace resource list, add:
 
 ```yaml
-- url: /voice_logs/voice-logs-card.js?v=0.3.5
+- url: /voice_logs/voice-logs-card.js?v=0.3.6
   type: module
 ```
 
@@ -36,6 +36,35 @@ height: 700px
 The card has a visual editor in Home Assistant for its title, sensor, page size, dimensions, and diagnostic details. In wide panel views it centers the archive in a readable column up to 1200px wide; set `width` to override that default. Height and width accept CSS dimensions such as `700px`, `40rem`, or `100%`; the archive list scrolls inside a set height. The query and response text is selectable for copy and paste. The card controls are currently in Finnish.
 
 The card starts with visible conversations, newest first. Search covers the complete archive, including hidden conversations only when **Näytä piilotetut** is enabled. Use **Piilota** to take a turn out of the default view and **Palauta** to bring it back. Hiding never deletes a turn. The **Toiminta** section shows the recorded operation, its targets or selected parameters, and the available outcome. It covers AI tool calls, native intent targets, and service calls connected to the active Assist context. A service dispatch is labelled **Palvelukutsu tehty**, not claimed as a confirmed success. Unfinished or historical calls without results are labelled explicitly.
+
+### Theme and CSS customization
+
+The cards inherit Home Assistant's theme colors by default. The archive uses `--primary-text-color`, `--secondary-text-color`, `--divider-color`, `--card-background-color`, `--primary-color`, `--text-primary-color`, `--secondary-background-color`, `--error-color`, and `--warning-color` as fallbacks. You can override the following `--voice-logs-*` variables in a Home Assistant theme or with card-mod:
+
+| Variable | Default |
+| --- | --- |
+| `--voice-logs-text-color` | `--primary-text-color` |
+| `--voice-logs-muted-color` | `--secondary-text-color` |
+| `--voice-logs-divider-color` | `--divider-color` |
+| `--voice-logs-input-background` | `--card-background-color` |
+| `--voice-logs-user-bubble-background` | `--primary-color` |
+| `--voice-logs-user-bubble-color` | `--text-primary-color`, then white |
+| `--voice-logs-assistant-bubble-background` | `--secondary-background-color` |
+| `--voice-logs-assistant-bubble-color` | `--primary-text-color` |
+| `--voice-logs-control-color` | `--primary-color` |
+| `--voice-logs-control-background` | Primary color at 12% opacity |
+| `--voice-logs-error-color` | `--error-color` |
+| `--voice-logs-warning-color` | `--warning-color` |
+
+For example, set theme keys without the leading `--`:
+
+```yaml
+my_theme:
+  voice-logs-user-bubble-background: "#315db5"
+  voice-logs-assistant-bubble-background: "#292a30"
+```
+
+Each conversation has a compact, right-aligned footer directly below the Assistant reply. It groups **Toiminta**, timestamp, processing mode, and **Piilota/Palauta** together. The footer wraps on narrow screens.
 
 Older entries may lack action details. Voice Logs can enrich entries whose original HA debug run is still available; it does not invent actions for older transcripts. Search also matches saved action names and targets.
 
