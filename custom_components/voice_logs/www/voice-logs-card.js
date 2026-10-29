@@ -91,7 +91,7 @@ class VoiceLogsCard extends HTMLElement {
           font-size:.85rem; text-align:center; margin:4px 0 10px; }
         .turn { padding:8px 0; border-bottom:1px solid var(--voice-logs-divider-color, var(--divider-color)); }
         .bubble-row { display:flex; align-items:flex-end; margin:5px 0; }
-        .bubble-row.user { justify-content:flex-start; gap:8px; flex-wrap:wrap; }
+        .bubble-row.user { justify-content:flex-start; }
         .bubble-row.assistant { justify-content:flex-end; gap:6px; }
         .bubble { box-sizing:border-box; max-width:88%; white-space:pre-wrap; overflow-wrap:anywhere; user-select:text;
           padding:10px 14px; line-height:1.4; border-radius:18px; }
@@ -102,7 +102,7 @@ class VoiceLogsCard extends HTMLElement {
         .assistant .bubble { color:var(--voice-logs-assistant-bubble-color, var(--primary-text-color));
           background:var(--voice-logs-assistant-bubble-background, var(--secondary-background-color));
           border-bottom-right-radius:4px; }
-        .message-meta { display:flex; gap:7px; align-items:center; flex-wrap:wrap;
+        .message-meta { display:flex; gap:7px; align-items:center; flex-wrap:wrap; margin:3px 0 8px 14px;
           color:var(--voice-logs-muted-color, var(--secondary-text-color)); font-size:.72rem; }
         .message-meta time { white-space:nowrap; }
         button { border:0; border-radius:9px; padding:6px 10px;
@@ -134,6 +134,9 @@ class VoiceLogsCard extends HTMLElement {
         .pager { display:flex; justify-content:center; padding-top:14px; }
         .count { color:var(--voice-logs-muted-color, var(--secondary-text-color)); font-size:.8rem; margin-left:auto; }
         .hidden-tag { color:var(--voice-logs-warning-color, var(--warning-color)); }
+        @media (max-width: 600px) {
+          .message-meta { margin-top:8px; margin-bottom:12px; }
+        }
       </style>
       <ha-card>
         <h2></h2>
@@ -271,7 +274,8 @@ class VoiceLogsCard extends HTMLElement {
       hidden.textContent = "Piilotettu";
       userMeta.append(hidden);
     }
-    box.append(this._bubble("user", turn.query, userMeta));
+    box.append(this._bubble("user", turn.query));
+    if (userMeta.childNodes.length) box.append(userMeta);
 
     const activity = this._renderActions(turn);
     const activityButton = this._iconButton("mdi:play", "Näytä toiminta");

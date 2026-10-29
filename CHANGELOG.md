@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.8
+
+- Move timestamps below the user message and add more spacing on mobile.
+
 ## 0.3.7
 
 - Move timestamps beside user messages and use relative time for the last three calendar days.
