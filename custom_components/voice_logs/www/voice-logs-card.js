@@ -46,6 +46,10 @@ class VoiceLogsCard extends HTMLElement {
     return {};
   }
 
+  static getConfigElement() {
+    return document.createElement("voice-logs-card-editor");
+  }
+
   _applyDimensions() {
     const width = cssDimension(this._config?.width, "width");
     this.style.width = width || "100%";
@@ -435,6 +439,10 @@ class VoiceLogsLatestCard extends HTMLElement {
     return { dismiss_after: 30 };
   }
 
+  static getConfigElement() {
+    return document.createElement("voice-logs-latest-card-editor");
+  }
+
   _applyDimensions() {
     const width = cssDimension(this._config?.width, "width");
     this.style.width = width || "100%";
@@ -598,6 +606,7 @@ if (!window.customCards.some((card) => card.type === "voice-logs-card")) {
     name: "Voice Logs",
     description: "Live Assist conversations and searchable persistent history",
     preview: true,
+    configurable: true,
   });
 }
 if (!window.customCards.some((card) => card.type === "voice-logs-latest-card")) {
@@ -606,5 +615,6 @@ if (!window.customCards.some((card) => card.type === "voice-logs-latest-card")) 
     name: "Voice Logs Latest Reply",
     description: "Show the latest Assist reply briefly, then hide it",
     preview: true,
+    configurable: true,
   });
 }

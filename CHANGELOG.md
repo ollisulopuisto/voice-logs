@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.4
+
+- Register each card's visual editor through Home Assistant's custom-card configuration hook.
+
 ## 0.3.3
 
 - Add Home Assistant visual editors for both cards, including configurable dimensions.

@@ -20,7 +20,7 @@ The archive is stored locally in Home Assistant. It keeps text and small trouble
 For a YAML-managed Lovelace resource list, add:
 
 ```yaml
-- url: /voice_logs/voice-logs-card.js?v=0.3.3
+- url: /voice_logs/voice-logs-card.js?v=0.3.4
   type: module
 ```
 
