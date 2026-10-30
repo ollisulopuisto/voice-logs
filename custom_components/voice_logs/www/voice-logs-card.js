@@ -142,13 +142,14 @@ class VoiceLogsCard extends HTMLElement {
         <h2></h2>
         <div class="live"></div>
         <div class="toolbar">
-          <input class="search" type="search" placeholder="Hae kysymyksistä ja vastauksista…" aria-label="Hae keskusteluista">
-          <label><input class="show-hidden" type="checkbox"> Näytä piilotetut</label>
-          <span class="count"></span>
+          <input class="search" type="search" placeholder="Hae kysymyksistä ja vastauksista…" aria-label="Hae keskusteluista"
+            title="Haku kattaa kysymykset, vastaukset ja tallennetun toiminnan.">
+          <label title="Piilotetut keskustelut säilyvät arkistossa. Valitse tämä nähdäksesi ja palauttaaksesi ne."><input class="show-hidden" type="checkbox"> Näytä piilotetut</label>
+          <span class="count" title="Arkistoon tallennettujen keskustelujen määrä."></span>
         </div>
         <div class="error" hidden></div>
         <div class="history"></div>
-        <div class="pager"><button class="more" type="button">Näytä vanhemmat</button></div>
+        <div class="pager"><button class="more" type="button" title="Lataa arkistosta seuraava, vanhempien keskustelujen sivu.">Näytä vanhemmat</button></div>
       </ha-card>`;
 
     this.shadowRoot.querySelector("h2").textContent = this._config?.title || "Puheavustajan keskustelut";
@@ -217,6 +218,9 @@ class VoiceLogsCard extends HTMLElement {
     root.replaceChildren(...this._items.map((item) => this._renderTurn(item)));
     const count = this.shadowRoot.querySelector(".count");
     count.textContent = this._total ? `${this._total} keskustelua` : "";
+    count.title = this._query
+      ? "Tulosten kokonaismäärä nykyisellä haulla."
+      : "Arkistoon tallennettujen keskustelujen kokonaismäärä.";
     const hasMore = this._items.length < this._total;
     this.shadowRoot.querySelector(".more").hidden = !hasMore;
     this.shadowRoot.querySelector(".pager").hidden = !hasMore;
@@ -243,6 +247,11 @@ class VoiceLogsCard extends HTMLElement {
     const label = document.createElement("div");
     label.className = "status";
     label.textContent = turn.status === "error" ? "Assist-virhe" : turn.finished ? "Valmis" : "Assist käsittelee pyyntöä…";
+    label.title = turn.status === "error"
+      ? "Assist ei pystynyt käsittelemään tätä pyyntöä loppuun."
+      : turn.finished
+        ? "Assist on saanut tämän keskusteluvuoron valmiiksi."
+        : "Assist käsittelee pyyntöä parhaillaan.";
     box.append(label);
     box.append(this._bubble("user", turn.query));
     if (turn.answer) box.append(this._bubble("assistant", turn.answer));
@@ -260,37 +269,54 @@ class VoiceLogsCard extends HTMLElement {
       const timestamp = document.createElement("time");
       timestamp.dateTime = turn.created_at;
       timestamp.textContent = timestampText;
+      timestamp.title = new Date(turn.created_at).toLocaleString(
+        this._hass?.locale?.language || navigator.language || "fi",
+      );
       userMeta.append(timestamp);
     }
     const debug = turn.debug || {};
     if (debug.mode) {
       const mode = document.createElement("span");
       mode.textContent = debug.mode === "local" ? "Paikallinen" : "AI";
+      mode.title = debug.mode === "local"
+        ? "Home Assistant käsitteli pyynnön paikallisella intentillä tai automaatiolla."
+        : "Keskusteluagentti (AI) käsitteli pyynnön.";
+      mode.setAttribute("aria-label", mode.title);
       userMeta.append(mode);
     }
     if (turn.hidden) {
       const hidden = document.createElement("span");
       hidden.className = "hidden-tag";
       hidden.textContent = "Piilotettu";
+      hidden.title = "Tämä keskustelu on piilossa oletusnäkymästä, mutta säilyy arkistossa.";
       userMeta.append(hidden);
     }
     box.append(this._bubble("user", turn.query));
     if (userMeta.childNodes.length) box.append(userMeta);
 
     const activity = this._renderActions(turn);
-    const activityButton = this._iconButton("mdi:play", "Näytä toiminta");
+    const activityButton = this._iconButton(
+      "mdi:play",
+      "Näytä toiminta",
+      "Näytä tähän pyyntöön liittyneet toiminnot, kohteet ja tulokset.",
+    );
     activityButton.setAttribute("aria-expanded", "false");
     activityButton.addEventListener("click", () => {
       activity.hidden = !activity.hidden;
       const open = !activity.hidden;
       activityButton.setAttribute("aria-expanded", String(open));
-      activityButton.title = open ? "Piilota toiminta" : "Näytä toiminta";
-      activityButton.setAttribute("aria-label", activityButton.title);
+      activityButton.title = open
+        ? "Piilota tähän pyyntöön liittyneiden toimintojen tiedot."
+        : "Näytä tähän pyyntöön liittyneet toiminnot, kohteet ja tulokset.";
+      activityButton.setAttribute("aria-label", open ? "Piilota toiminta" : "Näytä toiminta");
       activityButton.querySelector("ha-icon").setAttribute("icon", open ? "mdi:close" : "mdi:play");
     });
     const hideButton = this._iconButton(
       turn.hidden ? "mdi:eye" : "mdi:eye-off",
       turn.hidden ? "Palauta keskustelu" : "Piilota keskustelu",
+      turn.hidden
+        ? "Palauta keskustelu oletusnäkymään. Arkistomerkintä säilyy koko ajan."
+        : "Piilota keskustelu oletusnäkymästä. Se säilyy arkistossa ja löytyy Näytä piilotetut -valinnalla.",
     );
     hideButton.dataset.id = turn.id;
     hideButton.dataset.action = turn.hidden ? "restore" : "hide";
@@ -303,11 +329,11 @@ class VoiceLogsCard extends HTMLElement {
     return box;
   }
 
-  _iconButton(iconName, label) {
+  _iconButton(iconName, label, tooltip = label) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "icon-button";
-    button.title = label;
+    button.title = tooltip;
     button.setAttribute("aria-label", label);
     const icon = document.createElement("ha-icon");
     icon.setAttribute("icon", iconName);
@@ -322,6 +348,7 @@ class VoiceLogsCard extends HTMLElement {
     const title = document.createElement("div");
     title.className = "activity-title";
     title.textContent = "Toiminta";
+    title.title = "Yhteenveto Assist-pyynnön yhteydessä tehdyistä tai pyydetyistä toiminnoista.";
     details.append(title);
     const operations = turn.actions?.length ? turn.actions : (turn.debug?.tool_names || []).map((name) => ({
       name, status: "historical", targets: [], parameters: {},
@@ -344,6 +371,15 @@ class VoiceLogsCard extends HTMLElement {
       returned: "Työkalu palautti tuloksen", requested: "Kutsu tehtiin, tulosta ei vahvistettu",
       historical: "Kutsu tallennettu; tulostietoa ei ole saatavilla",
     };
+    const outcomeHelp = {
+      completed: "Home Assistantin intent ilmoitti toiminnon onnistuneeksi.",
+      failed: "Home Assistantin intent ilmoitti toiminnon epäonnistuneeksi.",
+      answered: "Pyyntöön haettiin tietoa; tämä ei itsessään muuta kodin laitteita.",
+      called: "Home Assistant lähetti palvelukutsun. Laitteen lopputilaa ei tässä vahvisteta.",
+      returned: "Työkalu palautti tuloksen. Palautus ei yksin vahvista laitteen tilan muuttuneen.",
+      requested: "Työkalukutsu tehtiin, mutta sen lopputulosta ei voitu vahvistaa.",
+      historical: "Vanha merkintä sisältää kutsun, mutta ei sen tulostietoa.",
+    };
     const labels = {
       entity_id: "Kohde", name: "Nimi", area: "Alue", area_id: "Alue",
       item: "Tuote", tuote: "Tuote", lista: "Lista", haku: "Hakusana",
@@ -361,6 +397,7 @@ class VoiceLogsCard extends HTMLElement {
       const outcome = document.createElement("div");
       outcome.className = "outcome";
       outcome.textContent = outcomes[operation.status] || "Tulosta ei vahvistettu";
+      outcome.title = outcomeHelp[operation.status] || "Toiminnon lopputulosta ei voitu vahvistaa.";
       item.append(outcome);
       for (const [key, value] of Object.entries(operation.parameters || {})) {
         const parameter = document.createElement("div");
@@ -400,6 +437,7 @@ class VoiceLogsCard extends HTMLElement {
     const details = document.createElement("details");
     const summary = document.createElement("summary");
     summary.textContent = "Tekniset tiedot";
+    summary.title = "Putken, puheentunnistuksen ja keskusteluagentin diagnostiikkatiedot.";
     details.append(summary);
     const list = document.createElement("dl");
     list.className = "debug";

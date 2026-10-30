@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.9
+
+- Add Finnish hover explanations to transcript labels, controls, and action outcomes.
+
 ## 0.3.8
 
 - Move timestamps below the user message and add more spacing on mobile.

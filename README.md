@@ -20,7 +20,7 @@ The archive is stored locally in Home Assistant. It keeps text and small trouble
 For a YAML-managed Lovelace resource list, add:
 
 ```yaml
-- url: /voice_logs/voice-logs-card.js?v=0.3.8
+- url: /voice_logs/voice-logs-card.js?v=0.3.9
   type: module
 ```
 
@@ -64,7 +64,7 @@ my_theme:
   voice-logs-assistant-bubble-background: "#292a30"
 ```
 
-Each conversation shows its timestamp and processing mode directly below the user message. Timestamps are relative through the day before yesterday, then switch to an absolute date and time. The Assistant reply has compact play and hide/restore icon buttons beside its bubble; play opens **Toiminta** only when needed, avoiding a permanent action row.
+Each conversation shows its timestamp and processing mode directly below the user message. Timestamps are relative through the day before yesterday, then switch to an absolute date and time. Hover over the timestamp to see the exact local date and time, or over **AI** / **Paikallinen** to see how the request was handled. The Assistant reply has compact play and hide/restore icon buttons beside its bubble; hover for an explanation, and use play to open **Toiminta** only when needed. Tooltips on action outcomes explain whether Home Assistant confirmed success or only sent a service call. Hiding takes a turn out of the default view but never deletes it.
 
 Older entries may lack action details. Voice Logs can enrich entries whose original HA debug run is still available; it does not invent actions for older transcripts. Search also matches saved action names and targets.
 
