@@ -15,7 +15,8 @@
       "init": {
         "title": "Voice Logs",
         "data": {
-          "allowed_user_ids": "Users who may read the conversation archive (administrators always can)"
+          "allowed_user_ids": "Users who may read the conversation archive (administrators always can)",
+          "retention_days": "Keep conversations for (days)"
         }
       }
     }

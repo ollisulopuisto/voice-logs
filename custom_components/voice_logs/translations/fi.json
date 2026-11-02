@@ -15,7 +15,8 @@
       "init": {
         "title": "Voice Logs",
         "data": {
-          "allowed_user_ids": "Käyttäjät, jotka saavat lukea keskusteluarkiston (ylläpitäjät aina)"
+          "allowed_user_ids": "Käyttäjät, jotka saavat lukea keskusteluarkiston (ylläpitäjät aina)",
+          "retention_days": "Säilytä keskusteluja (päivää)"
         }
       }
     }

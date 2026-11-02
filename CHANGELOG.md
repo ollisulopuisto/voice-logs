@@ -1,8 +1,7 @@
-## Unreleased
+## 0.4.1
 
-- The card is loaded through the frontend's extra module list, so it is available on every dashboard without adding a Lovelace resource. The integration never edits your dashboards or resource list.
-
-# Changelog
+- Conversations expire: they are kept for 90 days by default, adjustable in the integration options (1–3650 days). Older conversations, including hidden ones, and conversations without a readable date are deleted.
+- The card loads through the frontend's extra module list, so it is available on every dashboard without adding a Lovelace resource. The integration never edits your dashboards or resource list.
 
 ## 0.4.0
 

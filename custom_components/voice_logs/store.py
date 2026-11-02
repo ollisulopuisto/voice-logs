@@ -11,6 +11,7 @@ from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN, UPDATED_EVENT
 from .history import history_page
+from .retention import expired_ids
 
 STORE_VERSION = 1
 
@@ -26,6 +27,7 @@ class TranscriptStore:
         self.records: list[dict[str, Any]] = []
         self.active_turn: dict[str, Any] | None = None
         self.active_updated = ""
+        self.retention_days = 90
         self.updated_at = ""
 
     async def async_load(self) -> None:
@@ -57,6 +59,7 @@ class TranscriptStore:
                 return True
             record = {**turn, "id": run_id, "run_id": run_id, "hidden": False}
             self.records.insert(0, record)
+            self._prune_records()
             await self._async_save()
         return True
 
@@ -98,6 +101,22 @@ class TranscriptStore:
             offset=offset,
             limit=limit,
         )
+
+    def _prune_records(self) -> bool:
+        """Drop records older than the retention period. Returns True if anything was removed."""
+        from datetime import datetime, timezone
+
+        gone = expired_ids(self.records, datetime.now(timezone.utc), self.retention_days)
+        if not gone:
+            return False
+        self.records = [record for record in self.records if str(record.get("id")) not in gone]
+        return True
+
+    async def async_prune(self) -> None:
+        """Apply the retention period now (startup and after the option changes)."""
+        async with self._write_lock:
+            if self._prune_records():
+                await self._async_save()
 
     async def _async_save(self) -> None:
         self.updated_at = datetime.now().astimezone().isoformat(timespec="microseconds")

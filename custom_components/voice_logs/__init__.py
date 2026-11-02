@@ -73,13 +73,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Load the archive and begin monitoring Assist runs."""
     domain_data = hass.data.setdefault(DOMAIN, {DATA_STORES: {}, DATA_COORDINATORS: {}})
     store = TranscriptStore(hass, entry.entry_id)
+    store.retention_days = int(entry.options.get("retention_days", 90))
     await store.async_load()
+    await store.async_prune()
     coordinator = AssistHistoryCoordinator(hass, store)
     domain_data[DATA_STORES][entry.entry_id] = store
     domain_data[DATA_COORDINATORS][entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await coordinator.async_start(entry)
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     return True
+
+
+async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Apply a changed retention period at once."""
+    store = hass.data.get(DOMAIN, {}).get(DATA_STORES, {}).get(entry.entry_id)
+    if store is None:
+        return
+    store.retention_days = int(entry.options.get("retention_days", 90))
+    await store.async_prune()
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

@@ -42,6 +42,18 @@ class VoiceLogsOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
+                    vol.Optional(
+                        "retention_days",
+                        default=int(self.config_entry.options.get("retention_days", 90)),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=1,
+                            max=3650,
+                            step=1,
+                            mode=selector.NumberSelectorMode.BOX,
+                            unit_of_measurement="days",
+                        )
+                    ),
                     vol.Optional("allowed_user_ids", default=current): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=options,

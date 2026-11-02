@@ -26,6 +26,12 @@ Conversation text is private to the household. Only these users can read it:
 
 Everyone else gets an error from the cards, and the hide/restore actions are refused for them. Automations and scripts are trusted, because they run without a user. Both cards read text only through the access-checked WebSocket command. `sensor.voice_logs_latest` carries counts and ids only, so any user can see that a conversation happened but not what was said.
 
+## How long conversations are kept
+
+Conversations are kept for **90 days** by default. Change it under **Settings → Devices & services → Voice Logs → Configure** (1 to 3650 days). Older conversations are deleted, including hidden ones. A conversation without a readable date is deleted as well, so the archive never keeps text it cannot age. Hiding a conversation still keeps it for the retention period.
+
+Deleting from the archive is permanent. Home Assistant's recorder keeps the sensor's history separately; see the purge step under "Latest answer sensor".
+
 ## Persistent conversation card
 
 ```yaml
