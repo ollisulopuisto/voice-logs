@@ -100,7 +100,7 @@ The latest-reply card also has a Home Assistant visual editor for its title, sen
 
 ## Latest answer sensor
 
-The integration creates `sensor.voice_logs_latest`. Its state is the number of stored conversations. Its attributes hold only non-sensitive fields: `total_conversations`, `history_updated`, `has_active`, `active_updated` (changes when the exchange in progress changes) and `latest_id`.
+The integration creates `sensor.voice_logs_latest`, attached to a Voice Logs device so it shows on the integration's page. Its state is the number of stored conversations. Its attributes hold only non-sensitive fields: `total_conversations`, `history_updated`, `has_active`, `active_updated` (changes when the exchange in progress changes) and `latest_id`.
 
 The question, answer and debug data are **not** in the sensor. Both cards read them through the WebSocket command `voice_logs/history/list`, which returns the archive page, the exchange in progress (`active`) and the newest exchange (`latest`). The command checks access as described above.
 

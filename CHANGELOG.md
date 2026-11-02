@@ -1,3 +1,7 @@
+## 0.4.2
+
+- `sensor.voice_logs_latest` belongs to a Voice Logs device, so it appears on the integration's page. Its name and entity ID are unchanged.
+
 ## 0.4.1
 
 - Conversations expire: they are kept for 90 days by default, adjustable in the integration options (1–3650 days). Older conversations, including hidden ones, and conversations without a readable date are deleted.

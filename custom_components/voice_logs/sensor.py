@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DATA_STORES, DOMAIN, UPDATED_EVENT
@@ -36,6 +37,12 @@ class LatestConversationSensor(SensorEntity):
         self.entry = entry
         self.store = store
         self._attr_unique_id = f"{entry.entry_id}-latest"
+        # Groups the sensor under the integration's device page; name and entity_id are unchanged.
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name="Voice Logs",
+            entry_type=DeviceEntryType.SERVICE,
+        )
         self._remove_listener = None
 
     @property
