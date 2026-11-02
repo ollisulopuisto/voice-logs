@@ -15,14 +15,18 @@ The archive is stored locally in Home Assistant. It keeps text and small trouble
 1. Add this repository in **HACS → Integrations → ⋮ → Custom repositories** as an Integration.
 2. Install **Voice Logs** and restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration** and add **Voice Logs**.
-4. Add the card below to a dashboard. In Lovelace storage mode, the integration registers the card resource automatically.
+4. Add the card resource yourself. The integration never changes your dashboards. In **Settings → Dashboards → Resources** (storage mode), add:
+   - URL: `/voice_logs/voice-logs-card.js?v=0.4.0`
+   - Resource type: **JavaScript module**
 
-For a YAML-managed Lovelace resource list, add:
+   For a YAML-managed Lovelace resource list, add:
 
-```yaml
-- url: /voice_logs/voice-logs-card.js?v=0.4.0
-  type: module
-```
+   ```yaml
+   - url: /voice_logs/voice-logs-card.js?v=0.4.0
+     type: module
+   ```
+
+5. Add the cards below to the dashboards where you want them. Adding a card is a dashboard change you make yourself.
 
 ## Who can read the archive
 
