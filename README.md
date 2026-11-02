@@ -20,9 +20,18 @@ The archive is stored locally in Home Assistant. It keeps text and small trouble
 For a YAML-managed Lovelace resource list, add:
 
 ```yaml
-- url: /voice_logs/voice-logs-card.js?v=0.3.9
+- url: /voice_logs/voice-logs-card.js?v=0.4.0
   type: module
 ```
+
+## Who can read the archive
+
+Conversation text is private to the household. Only these users can read it:
+
+- **Administrators** always can.
+- **Users you choose** in **Settings → Devices & services → Voice Logs → Configure**. The list shows Home Assistant users; tick the ones who should see the archive, for example a wall tablet's user. The default is nobody but administrators.
+
+Everyone else gets an error from the cards, and the hide/restore actions are refused for them. Automations and scripts are trusted, because they run without a user. Both cards read text only through the access-checked WebSocket command. `sensor.voice_logs_latest` carries counts and ids only, so any user can see that a conversation happened but not what was said.
 
 ## Persistent conversation card
 
@@ -86,17 +95,21 @@ dismiss_after: 30
 show_question: false
 ```
 
-`dismiss_after` is seconds (30 by default). Set it to `0` to keep the card visible until another reply arrives. `show_question: true` also displays what was asked. A new completed Assist answer reappears and restarts the timer. The card tracks the latest answer from `sensor.voice_logs_latest`; opening or reloading the dashboard shows that latest answer and starts a fresh timer.
+`dismiss_after` is seconds (30 by default). Set it to `0` to keep the card visible until another reply arrives. `show_question: true` also displays what was asked. A new completed Assist answer reappears and restarts the timer. The card shows the newest answer, fetched through the WebSocket command, and uses `sensor.voice_logs_latest` only to notice that a new answer exists; opening or reloading the dashboard shows that latest answer and starts a fresh timer.
 
 The latest-reply card also has a Home Assistant visual editor for its title, sensor, dismissal delay, dimensions, and question visibility.
 
 ## Latest answer sensor
 
-The integration creates `sensor.voice_logs_latest`. Its state is a short version of the latest response; attributes include the full `question`, `answer`, `created_at`, `run_id`, `debug`, `active`, and `total_conversations`. Both cards use this sensor; the persistent card also loads the archive through the integration's WebSocket API.
+The integration creates `sensor.voice_logs_latest`. Its state is the number of stored conversations. Its attributes hold only non-sensitive fields: `total_conversations`, `history_updated`, `has_active`, `active_updated` (changes when the exchange in progress changes) and `latest_id`.
+
+The question, answer and debug data are **not** in the sensor. Both cards read them through the WebSocket command `voice_logs/history/list`, which returns the archive page, the exchange in progress (`active`) and the newest exchange (`latest`). The command checks access as described above.
+
+Sensor state and attributes are recorded by Home Assistant's recorder and logbook. Text recorded before version 0.4.0 stays there until purged: `recorder.purge_entities` with `entity_id: sensor.voice_logs_latest`.
 
 ## Actions
 
-The integration provides `voice_logs.hide_conversation` and `voice_logs.restore_conversation`, each taking a `conversation_id`. The chat card uses these actions for its hide/restore controls.
+The integration provides `voice_logs.hide_conversation` and `voice_logs.restore_conversation`, each taking a `conversation_id`. The chat card uses these actions for its hide/restore controls. Calls from a user are refused unless that user may read the archive (see above); automations and scripts are not checked.
 
 ## Capture and compatibility
 
@@ -109,8 +122,11 @@ Home Assistant does not put Assist pipeline messages on the event bus. Voice Log
 Run the standalone checks with:
 
 ```bash
-python3 tests/test_pipeline_reader.py
+for t in tests/test_*.py; do python3 "$t"; done
 python3 -m compileall -q custom_components/voice_logs
+node --check custom_components/voice_logs/www/voice-logs-card.js
 ```
+
+The access-control and privacy tests check the source (AST and text), so they run without Home Assistant installed.
 
 Report problems through the [issue tracker](https://github.com/ollisulopuisto/voice-logs/issues).
