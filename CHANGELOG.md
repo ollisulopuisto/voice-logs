@@ -1,3 +1,7 @@
+## Unreleased
+
+- The integration no longer adds the card resource to your dashboards. Add it yourself under Settings → Dashboards → Resources (see README).
+
 # Changelog
 
 ## 0.4.0

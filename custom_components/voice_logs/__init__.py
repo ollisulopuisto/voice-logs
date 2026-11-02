@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from urllib.parse import urlsplit
 
 from homeassistant.components import websocket_api
 from homeassistant.components.http import StaticPathConfig
@@ -57,51 +56,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 
 async def _async_register_card(hass: HomeAssistant) -> None:
-    """Serve the bundled card and register it in storage-mode dashboards."""
+    """Serve the bundled card file. The user adds it to a dashboard themselves."""
     await hass.http.async_register_static_paths(
         [StaticPathConfig(f"/{DOMAIN}", str(CARD_DIRECTORY), cache_headers=True)]
     )
 
-    lovelace = hass.data.get("lovelace")
-    resources = getattr(lovelace, "resources", None)
-    if resources is None:
-        _LOGGER.warning(
-            "Lovelace is not ready; add card resource %s manually if needed",
-            CARD_RESOURCE_URL,
-        )
-        return
-
-    try:
-        await resources.async_get_info()  # Load storage before inspecting items.
-        if not hasattr(resources, "async_create_item"):
-            _LOGGER.info(
-                "Voice Logs card is served at %s; add it to YAML-mode Lovelace resources",
-                CARD_RESOURCE_URL,
-            )
-            return
-
-        resource = next(
-            (
-                item
-                for item in resources.async_items()
-                if urlsplit(item.get("url", "")).path == CARD_URL
-            ),
-            None,
-        )
-        if resource is None:
-            await resources.async_create_item(
-                {"res_type": "module", "url": CARD_RESOURCE_URL}
-            )
-        elif resource.get("url") != CARD_RESOURCE_URL:
-            await resources.async_update_item(
-                resource["id"], {"res_type": "module", "url": CARD_RESOURCE_URL}
-            )
-    except Exception as err:  # Dashboard resource failure must not disable logging.
-        _LOGGER.warning(
-            "Could not auto-register the Voice Logs card: %s. Add %s in Settings > Dashboards > Resources.",
-            err,
-            CARD_RESOURCE_URL,
-        )
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
