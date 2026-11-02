@@ -134,6 +134,7 @@ def _get_store(hass: HomeAssistant) -> TranscriptStore:
     return next(iter(stores.values()))
 
 
+@websocket_api.require_admin
 @websocket_api.websocket_command(
     {
         probatio.Required("type"): f"{DOMAIN}/history/list",

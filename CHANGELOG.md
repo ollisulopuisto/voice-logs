@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.10
+
+- Security: the `voice_logs/history/list` websocket command now requires an administrator. It returns the whole Assist archive, which is not data of the user making the request.
+
 ## 0.3.9
 
 - Add Finnish hover explanations to transcript labels, controls, and action outcomes.
