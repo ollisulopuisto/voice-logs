@@ -22,6 +22,8 @@ def main() -> int:
             v.append("_async_register_card lisää Lovelace-resurssin käyttäjän puolesta; poista se")
         if "async_register_static_paths" not in teksti:
             v.append("tiedoston tarjoaminen (static path) puuttuu")
+        if "add_extra_js_url" not in teksti:
+            v.append("kortti pitää rekisteröidä frontendiin (add_extra_js_url), ettei käyttäjän tarvitse lisätä resurssia")
     for x in v:
         print("VIRHE:", x)
     print("OK" if not v else f"{len(v)} virhettä")

@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 
 from homeassistant.components import websocket_api
+from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -56,10 +57,15 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 
 async def _async_register_card(hass: HomeAssistant) -> None:
-    """Serve the bundled card file. The user adds it to a dashboard themselves."""
+    """Serve the card file and load it in the frontend.
+
+    The card becomes available on every dashboard without editing any dashboard or the user's
+    resource list. The user still decides where to place the card.
+    """
     await hass.http.async_register_static_paths(
         [StaticPathConfig(f"/{DOMAIN}", str(CARD_DIRECTORY), cache_headers=True)]
     )
+    add_extra_js_url(hass, CARD_RESOURCE_URL)
 
 
 

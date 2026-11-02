@@ -1,6 +1,6 @@
 ## Unreleased
 
-- The integration no longer adds the card resource to your dashboards. Add it yourself under Settings → Dashboards → Resources (see README).
+- The card is loaded through the frontend's extra module list, so it is available on every dashboard without adding a Lovelace resource. The integration never edits your dashboards or resource list.
 
 # Changelog
 
