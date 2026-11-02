@@ -9,5 +9,15 @@
     "abort": {
       "already_configured": "Voice Logs is already configured."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Voice Logs",
+        "data": {
+          "allowed_user_ids": "Users who may read the conversation archive (administrators always can)"
+        }
+      }
+    }
   }
 }

@@ -10,7 +10,7 @@ from homeassistant.components import websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
@@ -24,6 +24,7 @@ from .const import (
     DATA_STORES,
     DOMAIN,
 )
+from .acl import can_read
 from .coordinator import AssistHistoryCoordinator
 from .store import TranscriptStore
 
@@ -126,6 +127,30 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
+def _allowed_user_ids(hass: HomeAssistant) -> list[str]:
+    """User IDs chosen in the integration options (admins are always allowed)."""
+    entries = hass.config_entries.async_entries(DOMAIN)
+    return list(entries[0].options.get("allowed_user_ids", [])) if entries else []
+
+
+def _can_read(hass: HomeAssistant, user) -> bool:
+    """Whether this user may read the conversation archive."""
+    return can_read(bool(user and user.is_admin), getattr(user, "id", None), _allowed_user_ids(hass))
+
+
+async def _require_reader(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Service calls from a user must come from someone allowed to read the archive.
+
+    Automations and scripts have no user in their context and are trusted.
+    """
+    user_id = call.context.user_id
+    if user_id is None:
+        return
+    user = await hass.auth.async_get_user(user_id)
+    if not _can_read(hass, user):
+        raise HomeAssistantError("Ei oikeutta keskusteluarkistoon")
+
+
 def _get_store(hass: HomeAssistant) -> TranscriptStore:
     """Return the single configured transcript store."""
     stores = hass.data.get(DOMAIN, {}).get(DATA_STORES, {})
@@ -134,7 +159,6 @@ def _get_store(hass: HomeAssistant) -> TranscriptStore:
     return next(iter(stores.values()))
 
 
-@websocket_api.require_admin
 @websocket_api.websocket_command(
     {
         probatio.Required("type"): f"{DOMAIN}/history/list",
@@ -146,21 +170,26 @@ def _get_store(hass: HomeAssistant) -> TranscriptStore:
 )
 @callback
 def websocket_get_history(hass, connection, msg) -> None:
-    """Return a filtered page from the persistent archive."""
+    """Return a filtered page from the persistent archive, plus the live and latest exchange."""
+    if not _can_read(hass, connection.user):
+        connection.send_error(msg["id"], "unauthorized", "Ei oikeutta keskusteluarkistoon")
+        return
     store = _get_store(hass)
+    page = store.page(
+        query=msg["query"],
+        include_hidden=msg["include_hidden"],
+        offset=msg["offset"],
+        limit=msg["limit"],
+    )
     connection.send_result(
         msg["id"],
-        store.page(
-            query=msg["query"],
-            include_hidden=msg["include_hidden"],
-            offset=msg["offset"],
-            limit=msg["limit"],
-        ),
+        {**page, "active": store.active_turn, "latest": store.latest},
     )
 
 
 async def _async_hide_conversation(call) -> None:
     """Hide one transcript without deleting it."""
+    await _require_reader(call.hass, call)
     store = _get_store(call.hass)
     if not await store.async_set_hidden(call.data["conversation_id"], True):
         raise HomeAssistantError("Conversation was not found or was already hidden")
@@ -168,6 +197,7 @@ async def _async_hide_conversation(call) -> None:
 
 async def _async_restore_conversation(call) -> None:
     """Restore a hidden transcript to the normal history view."""
+    await _require_reader(call.hass, call)
     store = _get_store(call.hass)
     if not await store.async_set_hidden(call.data["conversation_id"], False):
         raise HomeAssistantError("Conversation was not found or was already visible")

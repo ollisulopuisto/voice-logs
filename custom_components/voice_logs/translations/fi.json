@@ -9,5 +9,15 @@
     "abort": {
       "already_configured": "Voice Logs on jo määritetty."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Voice Logs",
+        "data": {
+          "allowed_user_ids": "Käyttäjät, jotka saavat lukea keskusteluarkiston (ylläpitäjät aina)"
+        }
+      }
+    }
   }
 }

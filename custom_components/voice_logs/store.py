@@ -25,6 +25,7 @@ class TranscriptStore:
         self._write_lock = asyncio.Lock()
         self.records: list[dict[str, Any]] = []
         self.active_turn: dict[str, Any] | None = None
+        self.active_updated = ""
         self.updated_at = ""
 
     async def async_load(self) -> None:
@@ -77,6 +78,7 @@ class TranscriptStore:
         if turn == self.active_turn:
             return False
         self.active_turn = turn
+        self.active_updated = datetime.now().astimezone().isoformat(timespec="microseconds")
         self._fire_updated()
         return True
 

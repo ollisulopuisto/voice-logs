@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Breaking: `sensor.voice_logs_latest` no longer carries conversation text. Its state is the number of stored conversations; attributes hold only counts, timestamps, `has_active`, `active_updated` and `latest_id`. Cards read the text through `voice_logs/history/list`.
+- Access control: the archive (`voice_logs/history/list`) and the hide/restore services are allowed for administrators and for users chosen in the integration options (Settings > Voice Logs > Configure). Other users get an error. Automations and scripts are trusted.
+- The history command returns `active` (the exchange in progress) and `latest` (the newest exchange) so the cards need one call.
+- After updating: open the integration options and select the users who should read the archive, for example the wall tablet's user. Consider `recorder.purge_entities` on `sensor.voice_logs_latest` to remove text recorded before this version.
+
 ## 0.3.10
 
 - Security: the `voice_logs/history/list` websocket command now requires an administrator. It returns the whole Assist archive, which is not data of the user making the request.

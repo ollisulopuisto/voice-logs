@@ -22,7 +22,7 @@ async def async_setup_entry(
 
 
 class LatestConversationSensor(SensorEntity):
-    """Expose the last full answer as attributes and a short sensor state."""
+    """Expose counts and ids only; conversation text is read through the websocket command."""
 
     _attr_should_poll = False
     _attr_has_entity_name = False
@@ -39,25 +39,19 @@ class LatestConversationSensor(SensorEntity):
         self._remove_listener = None
 
     @property
-    def native_value(self) -> str | None:
-        latest = self.store.latest
-        if not latest:
-            return None
-        text = latest.get("answer") or latest.get("query") or ""
-        return str(text)[:255]
+    def native_value(self) -> int:
+        """Number of stored conversations. Text is read only through the admin-checked websocket command."""
+        return len(self.store.records)
 
     @property
     def extra_state_attributes(self) -> dict:
         latest = self.store.latest
         return {
-            "question": latest.get("query") if latest else None,
-            "answer": latest.get("answer") if latest else None,
-            "created_at": latest.get("created_at") if latest else None,
-            "run_id": latest.get("run_id") if latest else None,
-            "debug": latest.get("debug") if latest else None,
-            "active": self.store.active_turn,
             "total_conversations": len(self.store.records),
             "history_updated": self.store.updated_at,
+            "has_active": self.store.active_turn is not None,
+            "active_updated": self.store.active_updated,
+            "latest_id": latest.get("id") if latest else None,
         }
 
     async def async_added_to_hass(self) -> None:

@@ -27,14 +27,14 @@ class VoiceLogsCard extends HTMLElement {
     const state = hass.states[this._config?.entity || "sensor.voice_logs_latest"];
     const attrs = state?.attributes || {};
     const archiveKey = `${attrs.history_updated || ""}:${attrs.total_conversations || 0}`;
-    const activeKey = JSON.stringify(attrs.active || null);
+    const activeKey = attrs.active_updated || "";
     if (archiveKey !== this._archiveKey) {
       this._archiveKey = archiveKey;
       this._fetchPage(0);
     }
     if (activeKey !== this._activeKey) {
       this._activeKey = activeKey;
-      this._renderLive(attrs.active || null);
+      this._fetchLive();
     }
   }
 
@@ -172,6 +172,19 @@ class VoiceLogsCard extends HTMLElement {
       if (button) this._setHidden(button.dataset.id, button.dataset.action === "hide");
     });
     this._ready = true;
+  }
+
+  async _fetchLive() {
+    if (!this._hass || !this._ready) return;
+    try {
+      const result = await this._hass.connection.sendMessagePromise({
+        type: "voice_logs/history/list",
+        limit: 1,
+      });
+      this._renderLive(result.active || null);
+    } catch (err) {
+      this._renderLive(null);
+    }
   }
 
   async _fetchPage(offset, append = false) {
@@ -519,25 +532,43 @@ class VoiceLogsLatestCard extends HTMLElement {
     if (!this._ready) return;
     const state = hass.states[this._config?.entity || "sensor.voice_logs_latest"];
     const attrs = state?.attributes || {};
-    const answer = String(attrs.answer || state?.state || "").trim();
-    const messageId = attrs.run_id || attrs.history_updated || "";
-    if (!answer || !messageId) {
+    const messageId = attrs.latest_id || "";
+    if (!messageId) {
       this._messageId = "";
       this._cancelTimers();
       this.shadowRoot.querySelector("ha-card").hidden = true;
       return;
     }
     if (messageId === this._messageId) return;
-
     this._messageId = messageId;
+    this._showLatest(messageId);
+  }
+
+  async _showLatest(messageId) {
+    let latest = null;
+    try {
+      const result = await this._hass.connection.sendMessagePromise({
+        type: "voice_logs/history/list",
+        limit: 1,
+      });
+      latest = result.latest || null;
+    } catch (err) {
+      latest = null;
+    }
+    if (this._messageId !== messageId) return;
+    const answer = String((latest && (latest.answer || latest.query)) || "").trim();
     this._cancelTimers();
+    if (!answer) {
+      this.shadowRoot.querySelector("ha-card").hidden = true;
+      return;
+    }
     const card = this.shadowRoot.querySelector("ha-card");
     card.classList.remove("is-dismissing");
     card.hidden = false;
     this.shadowRoot.querySelector(".question").textContent = this._config.show_question
-      ? String(attrs.question || "")
+      ? String(latest.query || "")
       : "";
-    this.shadowRoot.querySelector(".question").hidden = !this._config.show_question || !attrs.question;
+    this.shadowRoot.querySelector(".question").hidden = !this._config.show_question || !latest.query;
     this.shadowRoot.querySelector(".answer").textContent = answer;
 
     if (this._dismissAfter > 0) {
